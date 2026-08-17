@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { nav, profile } from "@/content/site";
@@ -11,8 +12,17 @@ import { nav, profile } from "@/content/site";
  * pill-shaped container fades in as the user scrolls. It floats over
  * content rather than pinning flush to the viewport edge.
  *
- * The periwinkle fill and the single filled button are the only two
- * places colour appears anywhere in the system.
+ * The pill takes the accent fill (#002fa7). Because that accent is a
+ * dark saturated blue rather than the spec's pale tint, everything
+ * inside it inverts once the fill appears:
+ *
+ *   - wordmark and links go white (10.69:1 on the accent)
+ *   - the CONTACT button flips to a white fill with accent text,
+ *     since an accent-on-accent button would be invisible
+ *
+ * At the top of the page the pill is transparent over white canvas,
+ * so the same elements run in their normal ink-black / accent-filled
+ * form. Both states are driven by `filled` below.
  */
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
@@ -33,23 +43,42 @@ export default function Nav() {
     return () => window.removeEventListener("hashchange", close);
   }, [open]);
 
+  // The mobile menu forces the fill too, so its links stay legible.
+  const filled = scrolled || open;
+
+  const linkColor = filled
+    ? "text-on-accent hover:text-on-accent/70"
+    : "text-ink-black hover:text-smoke-gray";
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-16 pt-16 sm:px-24 sm:pt-24">
       <nav
         aria-label="Primary"
         className={[
           "mx-auto flex max-w-[var(--page-max-width)] flex-wrap items-center gap-x-24 gap-y-16 rounded-nav px-24 py-12 transition-colors duration-300",
-          scrolled || open
-            ? "bg-periwinkle-glow"
-            : "bg-transparent",
+          filled ? "nav-filled bg-klein-blue" : "bg-transparent",
         ].join(" ")}
       >
-        {/* Wordmark — lowercase, the one piece of custom lettering */}
-        <Link
-          href="/"
-          className="text-subheading leading-subheading tracking-subheading text-ink-black lowercase"
-        >
-          {profile.name.toLowerCase()}
+        {/* Wordmark — portrait plus name. Set in title case rather than
+            the lowercase logotype it used to be: next to a photograph
+            of a person, a lowercase mark reads as a brand rather than
+            as their name. */}
+        <Link href="/" className="flex items-center gap-12">
+          <Image
+            src={profile.avatar}
+            alt=""
+            width={320}
+            height={320}
+            priority
+            className="size-32 shrink-0 rounded-full object-cover"
+          />
+          <span
+            className={`whitespace-nowrap text-subheading leading-subheading tracking-subheading transition-colors duration-300 ${
+              filled ? "text-on-accent" : "text-ink-black"
+            }`}
+          >
+            {profile.fullName}
+          </span>
         </Link>
 
         <div className="ml-auto flex items-center gap-x-24">
@@ -58,7 +87,7 @@ export default function Nav() {
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  className="label text-ink-black transition-colors duration-200 hover:text-smoke-gray"
+                  className={`label transition-colors duration-300 ${linkColor}`}
                 >
                   {item.label}
                 </Link>
@@ -68,7 +97,11 @@ export default function Nav() {
 
           <Link
             href="/#contact"
-            className="label rounded-button bg-periwinkle-glow px-16 py-8 text-ink-black transition-colors duration-200 hover:bg-ink-black hover:text-paper-white"
+            className={`label rounded-button px-16 py-8 transition-colors duration-300 ${
+              filled
+                ? "bg-paper-white text-klein-blue hover:bg-ink-black hover:text-paper-white"
+                : "bg-klein-blue text-on-accent hover:bg-ink-black"
+            }`}
           >
             CONTACT
           </Link>
@@ -80,7 +113,7 @@ export default function Nav() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-controls="mobile-nav"
-            className="label text-ink-black md:hidden"
+            className={`label transition-colors duration-300 md:hidden ${linkColor}`}
           >
             {open ? "CLOSE" : "MENU"}
           </button>
@@ -96,7 +129,7 @@ export default function Nav() {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="label text-ink-black"
+                  className={`label ${linkColor}`}
                 >
                   {item.label}
                 </Link>

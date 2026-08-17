@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
-import { Row, Section, SectionHeader } from "@/components/Section";
+import { PageShell, Row, Section, SectionHeader } from "@/components/Section";
 import { posts, sections } from "@/content/site";
 import { formatDate } from "@/lib/format";
 
@@ -13,10 +13,7 @@ export const metadata: Metadata = {
 export default function Writing() {
   return (
     <>
-      {/* Clears the fixed nav pill. Kept on a wrapper rather than
-          passed into <Section>, where it would collide with the
-          section's own responsive vertical padding. */}
-      <div className="pt-100 lg:pt-[120px]">
+      <PageShell>
         <Section>
           <SectionHeader
             eyebrow={sections.writing.eyebrow}
@@ -44,7 +41,7 @@ export default function Writing() {
             ))}
           </ul>
         </Section>
-      </div>
+      </PageShell>
 
       <Footer />
     </>

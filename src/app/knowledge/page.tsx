@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
-import { Section, SectionHeader, Tag } from "@/components/Section";
+import { PageShell, Section, SectionHeader, Tag } from "@/components/Section";
 import { knowledge, sections } from "@/content/site";
 
 export const metadata: Metadata = {
@@ -12,8 +12,7 @@ export const metadata: Metadata = {
 export default function Knowledge() {
   return (
     <>
-      {/* Clears the fixed nav pill — see the note in /writing. */}
-      <div className="pt-100 lg:pt-[120px]">
+      <PageShell>
         <Section>
           <SectionHeader
             eyebrow={sections.knowledge.eyebrow}
@@ -51,7 +50,7 @@ export default function Knowledge() {
             ))}
           </div>
         </Section>
-      </div>
+      </PageShell>
 
       <Footer />
     </>

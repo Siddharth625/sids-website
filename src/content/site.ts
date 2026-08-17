@@ -7,20 +7,75 @@
    ───────────────────────────────────────────────────────────── */
 
 export const profile = {
-  // TODO: replace with your full name
-  name: "Sid",
-  // TODO: your actual title
-  role: "ENGINEER",
+  /* Drives the nav wordmark (lowercased there, as a logotype), the
+     hero H1, the page title and the footer copyright. */
+  fullName: "Siddharth Chadha",
+
+  role: "AI Product Manager | 0→1 Builder",
+  // Still used in the footer copyright line.
   location: "YOUR CITY",
 
-  /* Hero. Kept short — it's set at 50px with -0.5px tracking and
-     centered, so anything past ~9 words wraps past three lines. */
-  headline: "Building infrastructure that gets out of the way.",
-  // The subhead is doing the job of an About section.
-  subhead:
-    "ONE-SENTENCE BIO — what you work on, who you work on it for, and why it matters. Two lines at most.",
+  /* The hero H1. */
+  headline: "First principles over precedent. Signal over noise.",
+
+  /* Sits under the headline, doing the job of an About section.
+     Rendered at body size, not subheading — at 20px a paragraph this
+     long turns into a wall on a half-width column. */
+  bio: "Five years across consulting, strategy and product, now building AI products where the hard part isn't the model, it's deciding what's worth building. Reached this work through data and analytics, which is why the instinct is always to check the number before the narrative. Comfortable at the front of a problem: the stage where there's no roadmap, no benchmark, and the job is to establish what's actually true.",
+
+  /* Meta description only. Kept separate from `bio` because search
+     results truncate around 155 characters. */
+  description:
+    "Siddharth Chadha — AI product manager and 0→1 builder. First principles over precedent. Signal over noise.",
+
+  /* Square portrait in /public, cropped around the face. Used only by
+     the nav wordmark, where it renders as a small circle. */
+  avatar: "/portrait.jpg",
 
   email: "sid@nodeops.xyz",
+} as const;
+
+/* ── COMPANIES & CLIENTS ──────────────────────────────────────
+   Logo strip below the hero.
+
+   Drop an SVG or PNG into /public/logos and set `logo` to its path.
+   Until then each entry falls back to its name as a wordmark, so the
+   strip looks deliberate rather than broken. Monochrome logos work
+   best — the strip is rendered greyscale to stay inside the
+   near-achromatic palette. */
+
+export type Client = {
+  name: string;
+  logo?: string;
+};
+
+/* Not `as const`: that narrows each entry to exactly the keys written
+   here, so adding `logo` later would stop type-checking. */
+export const clients: { title: string; items: Client[] } = {
+  title: "Notable companies & clients worked with",
+  items: [
+    { name: "Deloitte" },
+    { name: "BlueUrbn" },
+    { name: "Stanford" },
+    { name: "NodeOps" },
+    { name: "Google for Startups" },
+    { name: "Aethir" },
+    { name: "0G Labs" },
+  ],
+};
+
+/* Sits under the hero bio as a row of pills. */
+export const industries = {
+  title: "Industry experience in:",
+  items: [
+    "Artificial Intelligence",
+    "Blockchain & Web3",
+    "Cloud Infrastructure",
+    "ESG & Sustainability",
+    "Healthcare",
+    "Real Estate",
+    "Finance",
+  ],
 } as const;
 
 export const socials = [
@@ -31,10 +86,10 @@ export const socials = [
 ] as const;
 
 export const nav = [
-  { label: "WORK", href: "/#work" },
-  { label: "PROJECTS", href: "/#projects" },
-  { label: "WRITING", href: "/#writing" },
-  { label: "LIBRARY", href: "/#library" },
+  { label: "WORK", href: "/work" },
+  { label: "PROJECTS", href: "/projects" },
+  { label: "WRITING", href: "/writing" },
+  { label: "LIBRARY", href: "/library" },
 ] as const;
 
 /* ── WORK ─────────────────────────────────────────────────── */
@@ -270,6 +325,14 @@ export const sections = {
     eyebrow: "WRITING",
     title: "Notes and essays",
     intro: "Mostly about the things I got wrong before I got them right.",
+  },
+  /* The /library hub. Interests, Books and the Knowledge Bank are all
+     "inputs" — grouped so the nav stays at four items. */
+  library: {
+    eyebrow: "LIBRARY",
+    title: "What goes in",
+    intro:
+      "The reading, notes and preoccupations behind everything on the rest of this site.",
   },
   interests: {
     eyebrow: "INTERESTS",

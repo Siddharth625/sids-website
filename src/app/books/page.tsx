@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Footer from "@/components/Footer";
-import { Row, Section, SectionHeader, Tag } from "@/components/Section";
+import { PageShell, Row, Section, SectionHeader, Tag } from "@/components/Section";
 import { books, sections } from "@/content/site";
 
 export const metadata: Metadata = {
@@ -18,8 +18,7 @@ export default function Books() {
 
   return (
     <>
-      {/* Clears the fixed nav pill — see the note in /writing. */}
-      <div className="pt-100 lg:pt-[120px]">
+      <PageShell>
         <Section>
           <SectionHeader
             eyebrow={sections.books.eyebrow}
@@ -53,7 +52,7 @@ export default function Books() {
             ))}
           </ul>
         </Section>
-      </div>
+      </PageShell>
 
       <Footer />
     </>

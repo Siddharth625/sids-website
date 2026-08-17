@@ -18,11 +18,11 @@ const interTight = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: `${profile.name} — ${profile.role.toLowerCase()}`,
-  description: profile.subhead,
+  title: `${profile.fullName} — ${profile.role}`,
+  description: profile.description,
   openGraph: {
-    title: `${profile.name} — ${profile.role.toLowerCase()}`,
-    description: profile.subhead,
+    title: `${profile.fullName} — ${profile.role}`,
+    description: profile.description,
     type: "website",
   },
 };

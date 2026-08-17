@@ -1,9 +1,13 @@
 import Link from "next/link";
+import SignalField from "@/components/SignalField";
 import Footer from "@/components/Footer";
-import { Row, Section, SectionHeader, Tag } from "@/components/Section";
+import LogoMarquee from "@/components/LogoMarquee";
+import MeshGradient from "@/components/MeshGradient";
+import { Pill, Row, Section, SectionHeader, Tag } from "@/components/Section";
 import Sphere from "@/components/Sphere";
 import {
   books,
+  industries,
   interests,
   knowledge,
   posts,
@@ -18,30 +22,72 @@ export default function Home() {
   return (
     <>
       {/* ── HERO ────────────────────────────────────────────────
-          The only centred content on the site. Everything below
-          this point is left-aligned, per the spec. */}
-      <section className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-24 pb-[38svh] pt-100">
-        <div className="relative z-10 flex max-w-[840px] flex-col items-center text-center">
-          <p className="label text-smoke-gray">
-            {profile.role} — {profile.location}
-          </p>
+          Two columns: name left, signal field right.
+          Note this departs from the spec's "centre the hero
+          headline" rule — a centred headline in a half-width
+          column reads as accidental. Filling the right half forces
+          the choice, so the headline is left-aligned and the whole
+          page now shares one axis. */}
+      <section className="relative isolate overflow-hidden px-24 pb-56 pt-[132px] sm:px-40 md:min-h-[100svh]">
+        <MeshGradient />
 
-          <h1 className="mt-32 text-[34px] leading-display tracking-display text-ink-black sm:text-[42px] lg:text-display">
-            {profile.headline}
-          </h1>
+        {/* Equal columns with a tighter gutter. Both halves are capped
+            by their column rather than by their own max-width, so the
+            split is the only lever on either one — this buys the text
+            ~96px without taking much off the field. */}
+        <div className="mx-auto grid max-w-[var(--page-max-width)] items-center gap-x-56 gap-y-56 md:min-h-[calc(100svh-188px)] md:grid-cols-2">
+          <div className="relative z-10">
+            {/* The role is the one thing a visitor should read first
+                after the headline, so it gets the accent fill rather
+                than sitting as plain muted text. */}
+            <Pill tone="accent" dot>
+              {profile.role}
+            </Pill>
 
-          <p className="mt-24 max-w-[560px] text-body leading-body tracking-body text-mist-gray sm:text-subheading sm:leading-subheading sm:tracking-subheading">
-            {profile.subhead}
-          </p>
+            <h1 className="mt-32 text-[30px] leading-display tracking-display text-ink-black sm:text-[38px] lg:text-[44px]">
+              {profile.headline}
+            </h1>
+
+            {/* Body size, not subheading — see the note in site.ts.
+                Ink-black, not mist-gray: over the tinted hero the muted
+                grey measured 1.6:1, far under the 4.5:1 minimum, and
+                this paragraph is the page's primary prose rather than
+                secondary copy. Hierarchy here comes from size, which is
+                how this design system is meant to work anyway. */}
+            {/* max-w sits above the column width so the column governs
+                — it's a guard against very wide viewports, not the
+                thing setting the measure. */}
+            <p className="mt-32 max-w-[620px] text-body leading-body tracking-body text-ink-black">
+              {profile.bio}
+            </p>
+
+            <p className="label mt-40 text-ink-black">{industries.title}</p>
+            <ul className="mt-16 flex max-w-[620px] flex-wrap items-center gap-8">
+              {industries.items.map((item) => (
+                <li key={item}>
+                  <Pill>{item}</Pill>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative z-10 flex justify-center md:justify-end">
+            <SignalField />
+          </div>
         </div>
 
-        {/* The sphere rises from the bottom of the viewport like a
-            planet. Clipped by the section's overflow-hidden so only
-            the upper arc shows. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-[52%] justify-center">
-          <Sphere className="w-[min(620px,115vw)]" />
-        </div>
+        {/* The bottom-left hero sphere was removed on request. To
+            bring it back, restore:
+
+            <div className="pointer-events-none absolute bottom-0 left-0 hidden -translate-x-[30%] translate-y-[58%] md:block">
+              <Sphere className="w-[440px]" />
+            </div>
+
+            The sphere still appears inside every project feature
+            card. */}
       </section>
+
+      <LogoMarquee />
 
       {/* ── WORK ───────────────────────────────────────────────── */}
       <Section id="work">
@@ -80,6 +126,13 @@ export default function Home() {
             </Row>
           ))}
         </ul>
+
+        <Link
+          href="/work"
+          className="label link-underline mt-56 inline-block text-ink-black"
+        >
+          ALL WORK
+        </Link>
       </Section>
 
       {/* ── PROJECTS ────────────────────────────────────────────
@@ -137,6 +190,13 @@ export default function Home() {
             </article>
           ))}
         </div>
+
+        <Link
+          href="/projects"
+          className="label link-underline mt-56 inline-block text-ink-black"
+        >
+          ALL PROJECTS
+        </Link>
       </Section>
 
       {/* ── WRITING ─────────────────────────────────────────────

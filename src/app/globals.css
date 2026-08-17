@@ -17,7 +17,15 @@
   --color-mist-gray: #a1a1a1;
   --color-smoke-gray: #8a8a8a;
   --color-veil-gray: #d0d0d0;
-  --color-periwinkle-glow: #acafff;
+
+  /* The sole chromatic accent. Replaces the spec's #acafff periwinkle
+     with International Klein Blue. Note the inversion this forces:
+     #acafff was a pale tint that carried #141414 text, but #002fa7 is
+     dark (relative luminance 0.048), so ink-black on it lands at
+     1.7:1 — well under the 4.5:1 minimum. Its foreground is white
+     (10.7:1), hence the paired token below. */
+  --color-klein-blue: #002fa7;
+  --color-on-accent: #ffffff;
 
   /* Typography — the real face behind every family token below */
   --font-amra-sans: var(--font-inter-tight), ui-sans-serif, system-ui,
@@ -130,14 +138,20 @@ th {
 }
 
 ::selection {
-  background-color: var(--color-periwinkle-glow);
-  color: var(--color-ink-black);
+  background-color: var(--color-klein-blue);
+  color: var(--color-on-accent);
 }
 
 :focus-visible {
   outline: 2px solid var(--color-ink-black);
   outline-offset: 3px;
   border-radius: 2px;
+}
+
+/* Inside the accent-filled nav pill an ink-black ring sits at 1.7:1
+   against the blue and all but disappears, so invert it there. */
+.nav-filled :focus-visible {
+  outline-color: var(--color-paper-white);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -153,6 +167,34 @@ th {
   letter-spacing: 0.029em;
   text-transform: uppercase;
   font-weight: 400;
+}
+
+/* ── Logo marquee ────────────────────────────────────────────
+   The track contains the list twice, so translating by exactly -50%
+   lands the second copy where the first started and the loop is
+   seamless. Hovering pauses it, which matters because the strip is
+   the only moving thing on an otherwise still page.
+
+   The global prefers-reduced-motion rule above collapses the
+   animation; with no fill-mode the track reverts to translateX(0),
+   leaving a readable static strip rather than a shifted one. */
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-scroll 44s linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
 }
 
 /* Inline link: 1px veil-gray underline with its own radius, and no

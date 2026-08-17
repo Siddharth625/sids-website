@@ -7,8 +7,11 @@
  * gradient, not a background on anything else. Drop a real render in
  * as an <Image> here and nothing else in the layout has to change.
  *
- * Colour path: white-lavender at the top → soft blue → deep teal at
- * the bottom, lit from slightly above centre.
+ * Colour path: white at the highlight → pale blue → International
+ * Klein Blue → deep navy in the shadow, lit from slightly above
+ * centre. Retuned off the spec's lavender-to-teal so the sphere reads
+ * as the same substance as the #002fa7 accent; a lavender sphere
+ * beside a Klein-blue button would look like two brands.
  */
 
 /* Light position per variant. Repeating one sphere across every
@@ -38,7 +41,7 @@ export default function Sphere({
          win or lose depending on CSS order. */
       className={`pointer-events-none aspect-square rounded-full ${className}`}
       style={{
-        background: `radial-gradient(circle at ${x}% ${y}%, #ffffff 0%, #eae6ff 14%, #c9c6ff 30%, #9fb5f0 48%, #5f9ac4 66%, #2b7391 80%, #135a72 92%, #0d4557 100%)`,
+        background: `radial-gradient(circle at ${x}% ${y}%, #ffffff 0%, #dee6ff 14%, #aabdf4 30%, #6e8ee5 46%, #3358cd 62%, #002fa7 78%, #01256f 90%, #011c4d 100%)`,
       }}
     />
   );

@@ -42,7 +42,7 @@ export default function Footer() {
       </ul>
 
       <p className="label mt-100 text-smoke-gray">
-        © {new Date().getFullYear()} {profile.name.toUpperCase()} — {profile.location}
+        © {new Date().getFullYear()} {profile.fullName.toUpperCase()} — {profile.location}
       </p>
     </footer>
   );
