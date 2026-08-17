@@ -82,10 +82,13 @@ export function Pill({
   children,
   tone = "default",
   dot = false,
+  dotColor,
 }: {
   children: ReactNode;
   tone?: "default" | "accent";
   dot?: boolean;
+  /** Overrides the dot colour — used to code the industry list. */
+  dotColor?: string;
 }) {
   const accent = tone === "accent";
   return (
@@ -100,8 +103,9 @@ export function Pill({
         <span
           aria-hidden="true"
           className={`block size-8 shrink-0 rounded-full ${
-            accent ? "bg-paper-white" : "bg-klein-blue"
+            dotColor ? "" : accent ? "bg-paper-white" : "bg-klein-blue"
           }`}
+          style={dotColor ? { backgroundColor: dotColor } : undefined}
         />
       )}
       {children}

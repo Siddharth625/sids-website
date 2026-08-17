@@ -126,8 +126,16 @@ matter for legibility:
   dots.
 
 Switching sets does not wait out the cycle: the current mix is frozen into A,
-the new figure goes into B, and the cycle restarts so the morph begins on the
-hover rather than up to 13s later.
+the new figure goes into B, and the cycle restarts on a shorter 5s duration so
+the concept arrives in a couple of seconds rather than up to 13s later.
+
+**Seamlessness is the fiddly part.** `snapshotInto` reproduces the vertex shader
+term for term on the CPU — per-particle arrival stagger, both drift terms, the
+reveal ramp and the scatter — because a naive uniform mix teleports the field to
+a fully-formed figure the instant you hover from mid-scatter. The figure drift
+is subtracted back out, since the shader re-adds it at `u = 0`. `LEAD` is
+duplicated between the shader and the CPU for this reason; if you change one,
+change both.
 
 Add an ambient figure by writing a generator and appending it to `AMBIENT`; add
 a concept by appending to `CONCEPTS`.

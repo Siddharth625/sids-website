@@ -64,8 +64,10 @@ export default function Home() {
             <p className="label mt-40 text-ink-black">{industries.title}</p>
             <ul className="mt-16 flex max-w-[620px] flex-wrap items-center gap-8">
               {industries.items.map((item) => (
-                <li key={item}>
-                  <Pill>{item}</Pill>
+                <li key={item.name}>
+                  <Pill dot dotColor={item.color}>
+                    {item.name}
+                  </Pill>
                 </li>
               ))}
             </ul>

@@ -11,7 +11,7 @@ export const profile = {
      hero H1, the page title and the footer copyright. */
   fullName: "Siddharth Chadha",
 
-  role: "AI Product Manager | 0→1 Builder",
+  role: "AI Product Manager",
   // Still used in the footer copyright line.
   location: "YOUR CITY",
 
@@ -64,17 +64,22 @@ export const clients: { title: string; items: Client[] } = {
   ],
 };
 
-/* Sits under the hero bio as a row of pills. */
+/* Sits under the hero bio as a row of pills.
+
+   Each carries its own dot colour. This is the one place the site
+   leaves its near-monochrome palette — the colour is confined to an
+   8px dot, with the pill itself staying neutral, so the row reads as
+   coded rather than as seven competing brand colours. */
 export const industries = {
   title: "Industry experience in:",
   items: [
-    "Artificial Intelligence",
-    "Blockchain & Web3",
-    "Cloud Infrastructure",
-    "ESG & Sustainability",
-    "Healthcare",
-    "Real Estate",
-    "Finance",
+    { name: "Artificial Intelligence", color: "#002fa7" },
+    { name: "Blockchain & Web3", color: "#7c3aed" },
+    { name: "Cloud Infrastructure", color: "#0ea5e9" },
+    { name: "ESG & Sustainability", color: "#16a34a" },
+    { name: "Healthcare", color: "#e11d48" },
+    { name: "Real Estate", color: "#d97706" },
+    { name: "Finance", color: "#0f766e" },
   ],
 } as const;
 
