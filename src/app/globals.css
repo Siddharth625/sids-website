@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   amra design tokens — sourced from Design.md
+   The four font families in the original spec are placeholder
+   names ('Primary Font', etc.) that resolve to nothing. They are
+   mapped here onto Inter Tight (loaded via next/font in layout.tsx),
+   which the spec names as an approved substitute for the custom
+   geometric sans. Swap --font-amra-* for a licensed face later and
+   every utility follows.
+   ───────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Colors */
+  --color-ink-black: #141414;
+  --color-paper-white: #ffffff;
+  --color-mist-gray: #a1a1a1;
+  --color-smoke-gray: #8a8a8a;
+  --color-veil-gray: #d0d0d0;
+  --color-periwinkle-glow: #acafff;
+
+  /* Typography — the real face behind every family token below */
+  --font-amra-sans: var(--font-inter-tight), ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --font-primary-font: var(--font-amra-sans);
+  --font-custom-geometric-sans-sphere-like-soft-terminals: var(--font-amra-sans);
+  --font-custom-uppercase-display-sans-tracked-out: var(--font-amra-sans);
+  --font-secondary-font: var(--font-amra-sans);
+
+  /* Typography — Scale */
+  --text-caption: 14px;
+  --leading-caption: 1.2;
+  --tracking-caption: 0.41px;
+  --text-body: 16px;
+  --leading-body: 1.6;
+  --tracking-body: 0.46px;
+  --text-subheading: 20px;
+  --leading-subheading: 1.2;
+  --tracking-subheading: -0.2px;
+  --text-heading: 30px;
+  --leading-heading: 1.2;
+  --tracking-heading: -0.3px;
+  --text-display: 50px;
+  --leading-display: 1;
+  --tracking-display: -0.5px;
+
+  /* Spacing — note: defining these keys overrides Tailwind's dynamic
+     scale for those numbers, so p-4 is 4px here, not 16px. Only the
+     keys listed below exist; use arbitrary values for anything else. */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-56: 56px;
+  --spacing-100: 100px;
+  --spacing-104: 104px;
+  --spacing-160: 160px;
+
+  /* Border Radius */
+  --radius-lg: 8px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-3xl-2: 40px;
+  --radius-3xl-3: 44px;
+
+  /* Named radii — semantic aliases over the raw scale above */
+  --radius-card: 44px;
+  --radius-button: 8px;
+  --radius-nav: 16px;
+  --radius-feature: 40px;
+  --radius-underline: 24px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+  /* clears the floating nav pill when jumping to an anchor */
+  scroll-padding-top: 120px;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background-color: var(--color-paper-white);
+  color: var(--color-ink-black);
+  font-family: var(--font-amra-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  /* The system has exactly one weight. Never escalate to 600/700. */
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The spec allows no bold anywhere — neutralise the UA defaults
+   that would otherwise sneak weight in through semantic tags. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong,
+b,
+th {
+  font-weight: 400;
+}
+
+::selection {
+  background-color: var(--color-periwinkle-glow);
+  color: var(--color-ink-black);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink-black);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Components
+   ───────────────────────────────────────────────────────────── */
+
+/* Uppercase tracked-out label — nav items, tags, eyebrows, footer
+   micro-copy. The wide tracking is what makes 14px read as a
+   navigational mark rather than as body text. */
+@utility label {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  letter-spacing: 0.029em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* Inline link: 1px veil-gray underline with its own radius, and no
+   colour change to the text itself. */
+@utility link-underline {
+  border-bottom: 1px solid var(--color-veil-gray);
+  border-radius: var(--radius-underline);
+  transition: border-color 200ms ease;
+
+  &:hover {
+    border-color: var(--color-ink-black);
+  }
+}
