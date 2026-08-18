@@ -126,6 +126,12 @@ export type Post_ = {
    * mark per entry.
    */
   logo?: string;
+  /**
+   * Drawn-in-code mark, for an employer whose logo we don't have.
+   * Inline rather than a file so it cannot 404, and so it stays sharp
+   * in a 32px slot where a scaled-down PNG would go muddy.
+   */
+  icon?: "briefcase";
   points: string[];
 };
 
@@ -186,6 +192,7 @@ export const education: Study[] = [
           {
             title: "Equity Research Analyst, Fincrux Technologies",
             period: "Jul 2020 - Sep 2020",
+            icon: "briefcase",
             points: [
               "Invested INR 2L at an average return of 21.25% across BSE-listed companies, on a real-time trade simulator.",
               "Used fundamental and technical analysis to evaluate company performance against the market.",

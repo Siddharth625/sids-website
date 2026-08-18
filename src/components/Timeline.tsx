@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import BriefcaseIcon from "@/components/BriefcaseIcon";
 import PostLogo from "@/components/PostLogo";
 import { CasedLabel } from "@/components/Section";
 import { education, work } from "@/content/site";
@@ -179,18 +180,7 @@ export default function Timeline() {
               <summary className="flex cursor-pointer list-none items-center gap-16 p-24 [&::-webkit-details-marker]:hidden">
                 {child.icon === "briefcase" && (
                   <div className="flex size-[40px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-veil-gray bg-paper-white">
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                      fill="currentColor"
-                      className="text-ink-black"
-                    >
-                      <path d="M9 3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5V5h-1.5V3.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25V5H9V3.5Z" />
-                      <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3.5h-7.5v-1a.75.75 0 0 0-.75-.75h-1.5a.75.75 0 0 0-.75.75v1H3V8Z" />
-                      <path d="M3 13h7.5v1c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75v-1H21v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z" />
-                    </svg>
+                    <BriefcaseIcon />
                   </div>
                 )}
 
@@ -293,9 +283,15 @@ export default function Timeline() {
                               mark, so a single employer without a logo
                               doesn't pull its title out of line with
                               the rest. */}
-                          {child.posts?.some((entry) => entry.logo) && (
+                          {child.posts?.some((entry) => entry.logo || entry.icon) && (
                             <div className="size-32 shrink-0">
-                              {post.logo && <PostLogo src={post.logo} />}
+                              {post.logo ? (
+                                <PostLogo src={post.logo} />
+                              ) : post.icon === "briefcase" ? (
+                                <div className="flex size-full items-center justify-center rounded-lg border border-veil-gray bg-paper-white">
+                                  <BriefcaseIcon size={18} />
+                                </div>
+                              ) : null}
                             </div>
                           )}
                           <p className="text-body leading-body tracking-body text-ink-black">

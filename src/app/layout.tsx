@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google";
+import AskLauncher from "@/components/AskLauncher";
 import Nav from "@/components/Nav";
 import { profile } from "@/content/site";
 import "./globals.css";
@@ -49,6 +50,9 @@ export default function RootLayout({
         </a>
         <Nav />
         <main id="main">{children}</main>
+
+        {/* Arthur, reachable from every page. */}
+        <AskLauncher />
       </body>
     </html>
   );

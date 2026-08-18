@@ -15,10 +15,18 @@ export const dynamic = "force-dynamic";
 
 const ENDPOINT = "https://api.resend.com/emails";
 
-/* Resend only sends from a domain you have verified. Until Sid
-   verifies his, `onboarding@resend.dev` is the sandbox sender every
-   Resend account gets, and it can only deliver to the account's own
-   address - which happens to be exactly where this is going. */
+/* `from` cannot be the visitor's own address, however much we would
+   like it to be. Mail servers check SPF and DKIM against the sending
+   domain, so a message claiming to come from someone's Gmail but sent
+   by Resend fails those checks and lands in spam or is rejected
+   outright - and Resend will not accept a domain you have not
+   verified in the first place.
+   The working equivalent is this: send from an address we control,
+   and set `reply_to` to the visitor. Hitting Reply then goes straight
+   to them, which is the behaviour that was actually wanted.
+   Until a domain is verified, `onboarding@resend.dev` is the sandbox
+   sender every Resend account gets; it can only deliver to that
+   account's own address, which is exactly where this is going. */
 const FROM = process.env.CONTACT_FROM ?? "onboarding@resend.dev";
 
 const LIMITS = { name: 120, email: 200, phone: 40, reason: 2_000 };
@@ -86,15 +94,21 @@ export async function POST(request: Request) {
     ["Name", name],
     ["Email", email],
     ["Phone", phone || "not given"],
-    ["Reason", reason || "not given"],
   ]
     .map(
       ([label, value]) =>
-        `<p style="margin:0 0 12px"><strong>${label}:</strong> ${escapeHtml(
+        `<p style="margin:0 0 8px"><strong>${label}:</strong> ${escapeHtml(
           value,
         )}</p>`,
     )
     .join("");
+
+  /* The reason is the part worth reading, so it gets its own block
+     rather than a row in the details list. */
+  const reasonBlock = `<p style="margin:24px 0 8px"><strong>Reason for contacting</strong></p>
+<p style="margin:0;white-space:pre-wrap">${
+    reason ? escapeHtml(reason) : "Not given."
+  }</p>`;
 
   try {
     const response = await fetch(ENDPOINT, {
@@ -104,16 +118,30 @@ export async function POST(request: Request) {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        from: `Site assistant <${FROM}>`,
+        from: `${name} (via Sid's site) <${FROM}>`,
         to: [profile.email],
         /* So replying in the mail client goes to the visitor rather
            than to the sending domain. */
         reply_to: email,
-        subject: `${name} asked to get in touch`,
+        subject: `Query from Sid's Website - ${name}`,
         html: `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6">
-<p style="margin:0 0 16px">Someone reached the question limit on the site assistant and left their details.</p>
+<p style="margin:0 0 16px">Someone reached the question limit on the site assistant and left their details. Reply to this email to answer ${escapeHtml(
+          name,
+        )} directly.</p>
 ${rows}
+${reasonBlock}
 </div>`,
+        /* A plain-text alternative, so the message is readable in
+           clients that block HTML and scores better with spam
+           filters, which distrust HTML-only mail. */
+        text: [
+          `Name: ${name}`,
+          `Email: ${email}`,
+          `Phone: ${phone || "not given"}`,
+          "",
+          "Reason for contacting:",
+          reason || "Not given.",
+        ].join("\n"),
       }),
     });
 
