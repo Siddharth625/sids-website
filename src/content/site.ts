@@ -257,6 +257,8 @@ export type Role = {
    *  drives both. The notes are drawn from the highlights below. */
   impact?: { metric: string; note: string }[];
   href?: string;
+  /** The product this role shipped, linked separately from the company. */
+  product?: { name: string; href: string };
 };
 
 export const work: Role[] = [
@@ -304,6 +306,7 @@ export const work: Role[] = [
       },
     ],
     href: "https://nodeops.xyz",
+    product: { name: "CreateOS", href: "https://createos.sh/" },
   },
   {
     slug: "blueurbn",

@@ -75,6 +75,19 @@ export default async function RoleDetail({ params }: Params) {
             {role.context ? ` · ${role.context}` : ""}
           </p>
 
+          {role.product && (
+            <p className="mt-12">
+              <Link
+                href={role.product.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="label link-underline text-ink-black"
+              >
+                {role.product.name.toUpperCase()}
+              </Link>
+            </p>
+          )}
+
           <p className="mt-24 max-w-[720px] text-body leading-body tracking-body text-ink-black">
             {role.blurb}
           </p>

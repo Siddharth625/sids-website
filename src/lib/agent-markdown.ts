@@ -46,6 +46,8 @@ export function buildAgentMarkdown(): string {
     push(`- **Period:** ${role.period}`);
     if (role.context) push(`- **Context:** ${role.context}`);
     if (role.href) push(`- **Link:** ${role.href}`);
+    if (role.product)
+      push(`- **Product:** ${role.product.name} (${role.product.href})`);
     push(`- **Detail page:** /work/${role.slug}`);
     push("", role.blurb, "");
     if (role.impact?.length) {

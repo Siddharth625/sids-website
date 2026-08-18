@@ -74,7 +74,7 @@ export default function Nav() {
             className="size-32 shrink-0 rounded-full object-cover"
           />
           <span
-            className={`whitespace-nowrap text-subheading leading-subheading tracking-subheading transition-colors duration-300 ${
+            className={`hidden whitespace-nowrap text-subheading leading-subheading tracking-subheading transition-colors duration-300 sm:inline ${
               filled ? "text-on-accent" : "text-ink-black"
             }`}
           >
@@ -116,9 +116,32 @@ export default function Nav() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-controls="mobile-nav"
-            className={`label transition-colors duration-300 md:hidden ${linkColor}`}
+            aria-label={open ? "Close menu" : "Open menu"}
+            className={`-mr-4 flex size-32 items-center justify-center transition-colors duration-300 md:hidden ${linkColor}`}
           >
-            {open ? "CLOSE" : "MENU"}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+            >
+              {open ? (
+                <>
+                  <path d="M5 5l10 10" />
+                  <path d="M15 5L5 15" />
+                </>
+              ) : (
+                <>
+                  <path d="M3 6h14" />
+                  <path d="M3 10h14" />
+                  <path d="M3 14h14" />
+                </>
+              )}
+            </svg>
           </button>
         </div>
 
@@ -138,6 +161,18 @@ export default function Nav() {
                 </Link>
               </li>
             ))}
+
+            {/* The HUMAN/AGENT switch is desktop-only in the bar, so the
+                agent view would otherwise be unreachable on a phone. */}
+            <li className="mt-8 border-t border-paper-white/30 pt-16">
+              <Link
+                href="/agent"
+                onClick={() => setOpen(false)}
+                className={`label ${linkColor}`}
+              >
+                AGENT VIEW
+              </Link>
+            </li>
           </ul>
         )}
       </nav>

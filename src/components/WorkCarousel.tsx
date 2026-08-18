@@ -140,6 +140,19 @@ export default function WorkCarousel() {
                 <p className="label mt-24 text-smoke-gray">{role.context}</p>
               )}
 
+              {role.product && (
+                <p className="mt-8">
+                  <Link
+                    href={role.product.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="label link-underline text-ink-black"
+                  >
+                    {role.product.name.toUpperCase()}
+                  </Link>
+                </p>
+              )}
+
               <p className="mt-12 text-subheading leading-subheading tracking-subheading text-ink-black">
                 {role.role}
               </p>
