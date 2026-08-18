@@ -1,3 +1,4 @@
+import AskSid from "@/components/AskSid";
 import SignalField from "@/components/SignalField";
 import Footer from "@/components/Footer";
 import LogoMarquee from "@/components/LogoMarquee";
@@ -12,7 +13,7 @@ import {
 
 export default function Home() {
   return (
-    <>
+    <div>
       {/* ── HERO ────────────────────────────────────────────────
           Two columns: name left, signal field right.
           Note this departs from the spec's "centre the hero
@@ -90,7 +91,12 @@ export default function Home() {
         <Timeline />
       </Section>
 
+      {/* Pins to the viewport as you reach it, then releases. See the
+          note in AskSid.tsx for why the wrapper is taller than the
+          panel. */}
+      <AskSid />
+
       <Footer />
-    </>
+    </div>
   );
 }

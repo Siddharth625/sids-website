@@ -26,7 +26,7 @@ export default function ViewToggle({ filled }: { filled: boolean }) {
 
   return (
     <div
-      className={`hidden items-center gap-4 rounded-full p-4 sm:flex ${
+      className={`hidden items-center gap-4 rounded-full p-4 lg:flex ${
         filled ? "bg-klein-blue/40" : "bg-veil-gray/40"
       }`}
     >

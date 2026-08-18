@@ -73,8 +73,22 @@ export default function Nav() {
             priority
             className="size-32 shrink-0 rounded-full object-cover"
           />
+          {/* Two spans rather than one, because the swap is a
+              breakpoint decision and only one is ever in the
+              accessibility tree - `hidden` is display:none, so screen
+              readers announce the name once, not twice.
+
+              The swap happens at `md`, where the pill still only
+              holds the wordmark, CONTACT and the menu button. */}
           <span
-            className={`hidden whitespace-nowrap text-subheading leading-subheading tracking-subheading transition-colors duration-300 sm:inline ${
+            className={`whitespace-nowrap text-subheading leading-subheading tracking-subheading transition-colors duration-300 md:hidden ${
+              filled ? "text-on-accent" : "text-ink-black"
+            }`}
+          >
+            {profile.shortName}
+          </span>
+          <span
+            className={`hidden whitespace-nowrap text-subheading leading-subheading tracking-subheading transition-colors duration-300 md:inline ${
               filled ? "text-on-accent" : "text-ink-black"
             }`}
           >
@@ -83,7 +97,7 @@ export default function Nav() {
         </Link>
 
         <div className="ml-auto flex items-center gap-x-24">
-          <ul className="hidden items-center gap-x-24 md:flex">
+          <ul className="hidden items-center gap-x-24 lg:flex">
             {nav.map((item) => (
               <li key={item.label}>
                 <Link
@@ -109,15 +123,17 @@ export default function Nav() {
             CONTACT
           </Link>
 
-          {/* Mobile disclosure - the pill grows downward rather than
-              opening an overlay, keeping the single-surface feel. */}
+          {/* Disclosure menu, up to `lg`. The links and the toggle
+              only fit alongside the wordmark and CONTACT from about
+              1024px; below that they live in here rather than
+              wrapping the pill onto a second row. */}
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
-            className={`-mr-4 flex size-32 items-center justify-center transition-colors duration-300 md:hidden ${linkColor}`}
+            className={`-mr-4 flex size-32 items-center justify-center transition-colors duration-300 lg:hidden ${linkColor}`}
           >
             <svg
               width="20"
@@ -148,7 +164,7 @@ export default function Nav() {
         {open && (
           <ul
             id="mobile-nav"
-            className="flex w-full basis-full flex-col gap-y-16 pb-8 md:hidden"
+            className="flex w-full basis-full flex-col gap-y-16 pb-8 lg:hidden"
           >
             {nav.map((item) => (
               <li key={item.label}>
@@ -162,8 +178,9 @@ export default function Nav() {
               </li>
             ))}
 
-            {/* The HUMAN/AGENT switch is desktop-only in the bar, so the
-                agent view would otherwise be unreachable on a phone. */}
+            {/* The HUMAN/AGENT switch only appears in the bar at `lg`,
+                so below that the agent view would otherwise have no
+                route in at all. */}
             <li className="mt-8 border-t border-paper-white/30 pt-16">
               <Link
                 href="/agent"

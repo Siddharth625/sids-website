@@ -7,9 +7,15 @@
    ───────────────────────────────────────────────────────────── */
 
 export const profile = {
-  /* Drives the nav wordmark (lowercased there, as a logotype), the
-     hero H1, the page title and the footer copyright. */
+  /* Drives the nav wordmark, the hero H1, the page title and the
+     footer copyright. */
   fullName: "Siddharth Chadha",
+
+  /* The nav wordmark below the `sm` breakpoint only. At 390px the
+     portrait, the full name, CONTACT and the menu icon overflow the
+     pill's inner width and wrap to a second row - so the name gets
+     shorter rather than disappearing, which is what it used to do. */
+  shortName: "Sid",
 
   role: "AI Product Manager",
 
@@ -85,6 +91,12 @@ export const workQuote = {
   author: "Jim Collins",
 } as const;
 
+/* Opens /books, above the bucket menu. */
+export const booksQuote = {
+  text: "You don't understand anything until you learn it more than one way.",
+  author: "Marvin Minsky",
+} as const;
+
 /* ── TIMELINE (education) ──────────────────────────────────────
    The timeline renders the roles in `work` first, then these. Roles
    are not duplicated here so the two can never drift apart.
@@ -97,6 +109,13 @@ export type Post_ = {
   title: string;
   /** Optional: not every post in the progression has a stated year. */
   period?: string;
+  /**
+   * Square mark in /public/logos. Optional because a progression of
+   * posts inside one organisation shares that organisation's logo -
+   * only a list of separate employers, like the internships, needs a
+   * mark per entry.
+   */
+  logo?: string;
   points: string[];
 };
 
@@ -104,6 +123,12 @@ export type Study = {
   id: string;
   /** Square mark in /public/logos. */
   logo?: string;
+  /**
+   * Drawn-in-code mark, for an entry that stands for a group of
+   * things rather than one organisation - there is no logo for
+   * "Internships". Inline rather than a file so it cannot 404.
+   */
+  icon?: "briefcase";
   href?: string;
   /** Overrides the default "VISIT" wording on the link. */
   linkLabel?: string;
@@ -132,6 +157,52 @@ export const education: Study[] = [
       "Lumos: top 15 medical prototypes at the AIIMS Delhi dentistry convention",
     ],
     children: [
+      {
+        id: "internships",
+        icon: "briefcase",
+        institution: "Internships",
+        stream: "2019 - 2021",
+        note: "Four stints alongside the degree, across neural networks, equity research, applied machine learning and corporate finance.",
+        posts: [
+          {
+            title: "Shadowed Consulting Haus Director",
+            logo: "/logos/consulting-haus.png",
+            period: "May 2021 - Sep 2021",
+            points: [
+              "Shadowed the Director of Corporate Finance Strategy, evaluating Islamic financial instruments for an NBFC.",
+              "Benchmarked 200+ NBFCs and banks across the GCC, covering both corporate and retail customers.",
+            ],
+          },
+          {
+            title: "Equity Research Analyst, Fincrux Technologies",
+            period: "Jul 2020 - Sep 2020",
+            points: [
+              "Invested INR 2L at an average return of 21.25% across BSE-listed companies, on a real-time trade simulator.",
+              "Used fundamental and technical analysis to evaluate company performance against the market.",
+            ],
+          },
+          {
+            title: "Data Science Intern, Alpha AI",
+            logo: "/logos/alpha-ai.png",
+            period: "2019",
+            points: [
+              "Built a recommendation algorithm for solo and group travel handling 1M+ users, delivered three weeks ahead of schedule.",
+              "Led a team of 4 interns and 2 psychologists to fold personality traits into the recommendations.",
+              "Combined collaborative and content-based filtering, improving the system's efficacy by 60%.",
+              "Generated deep fakes to automate content production for edtech practitioners, cutting man-hours by 40%.",
+              "Applied GAN-based generative modelling to improve video content generation.",
+            ],
+          },
+          {
+            title: "Neural Networks Intern, UNESP, São Paulo",
+            logo: "/logos/unesp.png",
+            period: "Jun 2019 - Jul 2019",
+            points: [
+              "Built a neural network in the MATLAB NN toolbox that took GDP, exports, imports, inflation and interest rates across 20 years to predict the value of the Indian rupee, accurate to 96%.",
+            ],
+          },
+        ],
+      },
       {
         id: "iaeste",
         institution: "IAESTE India",
@@ -232,7 +303,7 @@ export const nav = [
   { label: "WORK", href: "/work" },
   { label: "PROJECTS", href: "/projects" },
   { label: "WRITING", href: "/writing" },
-  { label: "LIBRARY", href: "/library" },
+  { label: "LEARNINGS", href: "/books" },
 ] as const;
 
 /* ── WORK ─────────────────────────────────────────────────── */
@@ -483,29 +554,21 @@ export const posts: Post[] = [
   },
 ];
 
-/* ── INTERESTS ────────────────────────────────────────────── */
-
-export type Interest = {
-  title: string;
-  body: string;
-};
-
-export const interests: Interest[] = [
-  {
-    title: "First interest",
-    body: "A couple of sentences on what pulls you in about this. Specific beats broad: 'the failure modes of consensus protocols' is a personality, 'distributed systems' is a resume line.",
-  },
-  {
-    title: "Second interest",
-    body: "Something outside work. This section is the one that makes a personal site personal, so resist making all three of them technical.",
-  },
-  {
-    title: "Third interest",
-    body: "What you'd talk about for an hour without checking the time.",
-  },
-];
-
 /* ── BOOKS ────────────────────────────────────────────────── */
+
+/* Three buckets, chosen so the shelf splits by *what a book is about*
+   rather than by when it was read. A year filter tells a visitor
+   nothing; "is this person reading about AI or about consciousness"
+   tells them a lot.
+
+   Order here is the order of the menu on /books. */
+export const bookBuckets = [
+  "Books",
+  "AI & Tech",
+  "Science & Spirituality",
+] as const;
+
+export type BookBucket = (typeof bookBuckets)[number];
 
 export type Book = {
   /* Stable unique key. Title+author isn't reliable - you can read two
@@ -513,74 +576,92 @@ export type Book = {
   id: string;
   title: string;
   author: string;
-  note: string;
-  status: "READING" | "FINISHED" | "QUEUED";
-  year?: string;
+  bucket: BookBucket;
+  /* Cover art, dropped into /public/covers. The shelf falls back to a
+     typographic cover both when this is unset and when the file 404s,
+     so a wrong path degrades instead of showing a broken image. */
+  cover?: string;
+  /* Still reading. These carry no takeaway - the whole point of the
+     line below is that it survived finishing the book. */
+  inProgress?: boolean;
+  /* The one thing I remember, in my own words. Rendered in quotes.
+     Omitted for anything still in progress. */
+  remember?: string;
 };
 
 export const books: Book[] = [
   {
-    id: "book-1",
-    title: "BOOK TITLE",
-    author: "AUTHOR NAME",
-    note: "One line on what it changed for you. Not a summary, a reaction.",
-    status: "READING",
+    id: "meluha",
+    title: "The Immortals of Meluha",
+    author: "Amish Tripathi",
+    bucket: "Books",
+    cover: "/covers/immortals-of-meluha.png",
+    remember: "The good in you is as much you as the evil in you.",
   },
   {
-    id: "book-2",
-    title: "BOOK TITLE",
-    author: "AUTHOR NAME",
-    note: "The note is the whole point of a books page. A bare list of titles says nothing.",
-    status: "FINISHED",
-    year: "2026",
+    id: "nagas",
+    title: "The Secret of the Nagas",
+    author: "Amish Tripathi",
+    bucket: "Books",
+    cover: "/covers/secret-of-the-nagas.png",
+    remember: "Real power is not always to show.",
   },
   {
-    id: "book-3",
-    title: "BOOK TITLE",
-    author: "AUTHOR NAME",
-    note: "Books you disliked are more interesting than books you liked. Say why.",
-    status: "FINISHED",
-    year: "2025",
+    id: "psychology-of-money",
+    title: "The Psychology of Money",
+    author: "Morgan Housel",
+    bucket: "Books",
+    cover: "/covers/psychology-of-money.png",
+    remember: "Real wealth is not seen.",
   },
   {
-    id: "book-4",
-    title: "BOOK TITLE",
-    author: "AUTHOR NAME",
-    note: "What made you pick it up.",
-    status: "QUEUED",
-  },
-];
-
-/* ── KNOWLEDGE BANK ───────────────────────────────────────── */
-
-export type Entry = {
-  title: string;
-  body: string;
-  tag: string;
-  href?: string;
-};
-
-export const knowledge: Entry[] = [
-  {
-    title: "A thing worth remembering",
-    body: "The knowledge bank is for durable notes, the stuff you keep re-deriving because you never wrote it down. Each entry should be useful to a stranger, not just to you.",
-    tag: "SYSTEMS",
+    id: "subtle-art",
+    title: "The Subtle Art of Not Giving a F*ck",
+    author: "Mark Manson",
+    bucket: "Books",
+    cover: "/covers/subtle-art.png",
+    remember: "Meditation is a mock of death.",
   },
   {
-    title: "A reference you keep returning to",
-    body: "Link out generously here. Curation is a real contribution.",
-    tag: "REFERENCE",
-    href: "https://example.com",
+    id: "mindset",
+    title: "Mindset",
+    author: "Carol S. Dweck",
+    bucket: "Books",
+    cover: "/covers/mindset.png",
+    remember:
+      "Be mindful enough to know if you have a growth or a fixed mindset.",
   },
   {
-    title: "A mental model",
-    body: "Frameworks you use to make decisions, and where they break down.",
-    tag: "THINKING",
+    id: "hard-things",
+    title: "The Hard Thing About Hard Things",
+    author: "Ben Horowitz",
+    bucket: "Books",
+    cover: "/covers/hard-thing-about-hard-things.png",
+    inProgress: true,
   },
   {
-    title: "A hard-won operational lesson",
-    body: "Incidents, postmortems, and the rules you now follow because of them.",
-    tag: "OPS",
+    id: "hooked",
+    title: "Hooked",
+    author: "Nir Eyal",
+    bucket: "Books",
+    cover: "/covers/hooked.png",
+    inProgress: true,
+  },
+  {
+    id: "psycho-cybernetics",
+    title: "Psycho-Cybernetics",
+    author: "Maxwell Maltz",
+    bucket: "Books",
+    cover: "/covers/psycho-cybernetics.png",
+    remember: "Understanding self image, and how it influences our decisions.",
+  },
+  {
+    id: "autobiography-of-a-yogi",
+    title: "Autobiography of a Yogi",
+    author: "Paramahansa Yogananda",
+    bucket: "Books",
+    cover: "/covers/autobiography-of-a-yogi.png",
+    inProgress: true,
   },
 ];
 
@@ -608,29 +689,17 @@ export const sections = {
     title: "Notes and essays",
     intro: "Mostly about the things I got wrong before I got them right.",
   },
-  /* The /library hub. Interests, Books and the Knowledge Bank are all
-     "inputs" - grouped so the nav stays at four items. */
-  library: {
-    eyebrow: "LIBRARY",
-    title: "What goes in",
-    intro:
-      "The reading, notes and preoccupations behind everything on the rest of this site.",
-  },
-  interests: {
-    eyebrow: "INTERESTS",
-    title: "What holds my attention",
-    intro: "The topics I keep circling back to.",
-  },
   books: {
-    eyebrow: "BOOKS",
-    title: "What I'm reading",
-    intro: "A running shelf, with notes.",
-  },
-  knowledge: {
-    eyebrow: "KNOWLEDGE BANK",
-    title: "Things worth keeping",
+    eyebrow: "LEARNINGS",
+    title: "Learnings",
     intro:
-      "A working set of notes, references, and models I've found worth writing down.",
+      "Sorted by what a book is about rather than when I read it, each with the one thing I still remember from it.",
+  },
+  ask: {
+    eyebrow: "ASSISTANT",
+    title: "Ask about me",
+    intro:
+      "A chat box wired to everything on this site. Ask it what I've worked on, what I've shipped, or whether I'm a fit for something you're hiring for.",
   },
   contact: {
     eyebrow: "CONTACT",

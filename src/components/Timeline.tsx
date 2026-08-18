@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import PostLogo from "@/components/PostLogo";
 import { CasedLabel } from "@/components/Section";
 import { education, work } from "@/content/site";
 
@@ -176,6 +177,23 @@ export default function Timeline() {
               className="group mt-24 rounded-card border border-veil-gray"
             >
               <summary className="flex cursor-pointer list-none items-center gap-16 p-24 [&::-webkit-details-marker]:hidden">
+                {child.icon === "briefcase" && (
+                  <div className="flex size-[40px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-veil-gray bg-paper-white">
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      fill="currentColor"
+                      className="text-ink-black"
+                    >
+                      <path d="M9 3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5V5h-1.5V3.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25V5H9V3.5Z" />
+                      <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3.5h-7.5v-1a.75.75 0 0 0-.75-.75h-1.5a.75.75 0 0 0-.75.75v1H3V8Z" />
+                      <path d="M3 13h7.5v1c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75v-1H21v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z" />
+                    </svg>
+                  </div>
+                )}
+
                 {child.logo && (
                   <div className="size-[40px] shrink-0 overflow-hidden rounded-2xl border border-veil-gray bg-paper-white">
                     <Image
@@ -261,9 +279,29 @@ export default function Timeline() {
                         {post.period && (
                           <p className="label text-smoke-gray">{post.period}</p>
                         )}
-                        <p className="mt-4 text-body leading-body tracking-body text-ink-black">
-                          {post.title}
-                        </p>
+                        {/* The logo sits with the title rather than in
+                            the left gutter: that column already holds
+                            the progression's rail and node, and a mark
+                            there would compete with them. Smaller than
+                            the 40px organisation chip above, so a list
+                            of employers still reads as one nested
+                            progression rather than as a second list of
+                            top-level entries. */}
+                        <div className="mt-4 flex items-center gap-12">
+                          {/* The slot is reserved for every post in a
+                              progression as soon as one of them has a
+                              mark, so a single employer without a logo
+                              doesn't pull its title out of line with
+                              the rest. */}
+                          {child.posts?.some((entry) => entry.logo) && (
+                            <div className="size-32 shrink-0">
+                              {post.logo && <PostLogo src={post.logo} />}
+                            </div>
+                          )}
+                          <p className="text-body leading-body tracking-body text-ink-black">
+                            {post.title}
+                          </p>
+                        </div>
                         <ul className="mt-12 flex flex-col gap-8">
                           {post.points.map((point) => (
                             <li key={point} className="flex gap-12">

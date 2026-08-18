@@ -28,7 +28,7 @@ export default async function RoleDetail({ params }: Params) {
   if (!role) notFound();
 
   return (
-    <>
+    <div>
       <PageShell>
         <Section>
           <Link
@@ -121,6 +121,6 @@ export default async function RoleDetail({ params }: Params) {
       </PageShell>
 
       <Footer />
-    </>
+    </div>
   );
 }

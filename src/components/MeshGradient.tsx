@@ -24,17 +24,22 @@
 const GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
-export default function MeshGradient() {
+/* The hero sits at the top of the page, so its gradient fades out at
+   the bottom into the white canvas. A section further down needs the
+   fade at the *top* instead, or the colour starts on a hard horizontal
+   edge - hence `flip`, which just runs the mask the other way. */
+const FADE_DOWN =
+  "linear-gradient(180deg, #000 0%, #000 58%, rgba(0,0,0,0.55) 80%, transparent 100%)";
+const FADE_UP =
+  "linear-gradient(0deg, #000 0%, #000 58%, rgba(0,0,0,0.55) 80%, transparent 100%)";
+
+export default function MeshGradient({ flip = false }: { flip?: boolean }) {
+  const mask = flip ? FADE_UP : FADE_DOWN;
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-      style={{
-        maskImage:
-          "linear-gradient(180deg, #000 0%, #000 58%, rgba(0,0,0,0.55) 80%, transparent 100%)",
-        WebkitMaskImage:
-          "linear-gradient(180deg, #000 0%, #000 58%, rgba(0,0,0,0.55) 80%, transparent 100%)",
-      }}
+      style={{ maskImage: mask, WebkitMaskImage: mask }}
     >
       {/* Colour field. Inset past the edges so the blur has room. */}
       <div

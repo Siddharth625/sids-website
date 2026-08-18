@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function Writing() {
   return (
-    <>
+    <div>
       <PageShell>
         <Section>
           <SectionHeader
@@ -29,6 +29,6 @@ export default function Writing() {
       </PageShell>
 
       <Footer />
-    </>
+    </div>
   );
 }

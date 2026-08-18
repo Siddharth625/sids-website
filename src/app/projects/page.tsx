@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function Projects() {
   return (
-    <>
+    <div>
       <PageShell>
         <Section>
           <SectionHeader
@@ -74,6 +74,6 @@ export default function Projects() {
       </PageShell>
 
       <Footer />
-    </>
+    </div>
   );
 }

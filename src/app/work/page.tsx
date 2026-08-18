@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function Work() {
   return (
-    <>
+    <div>
       <PageShell>
         <Section>
           {/* The visible header is a quote, so keep a real heading
@@ -26,6 +26,6 @@ export default function Work() {
       </PageShell>
 
       <Footer />
-    </>
+    </div>
   );
 }

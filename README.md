@@ -24,7 +24,8 @@ Nothing visitor-facing is hardcoded in components. Placeholders are in CAPS
 | Name, title, tagline, email | `profile` in `site.ts` |
 | Social links | `socials` |
 | Nav items | `nav` |
-| Roles, projects, posts, interests, books, notes | `work`, `projects`, `posts`, `interests`, `books`, `knowledge` |
+| Roles, projects, posts, books | `work`, `projects`, `posts`, `books` |
+| Book buckets (the menu on `/books`) | `bookBuckets` |
 | Section eyebrows/titles/intros | `sections` |
 | Design tokens | `@theme` block in `src/app/globals.css` |
 
@@ -32,18 +33,67 @@ Nothing visitor-facing is hardcoded in components. Placeholders are in CAPS
 
 | Route | Contents |
 | --- | --- |
-| `/` | Hero (name left, cymatic plate right) → Work → Projects → Writing → Interests → Books → Knowledge Bank → Contact, each previewing its own page |
-| `/work` | Full role history |
+| `/` | Hero → clients → Sid's timeline → the assistant → Contact |
+| `/work` | Full role history (carousel), with a detail page per role at `/work/[slug]` |
 | `/projects` | Full project list |
 | `/writing` | Full post archive |
-| `/library` | Hub for the three "input" collections: Interests in full, Books and Knowledge Bank previewed |
-| `/books` | Full shelf, sorted reading → finished → queued |
-| `/knowledge` | All notes |
+| `/books` | The shelf, split into three buckets. Nav calls it LEARNINGS. |
+| `/agent`, `/llms.txt` | The whole site as markdown, for machine readers |
+| `/api/chat` | Backs the assistant. The only non-static route. |
 
-Nav holds exactly four items - WORK, PROJECTS, WRITING, LIBRARY - as the design
-system requires; Books and the Knowledge Bank are reached through `/library`.
-Every page except the homepage wraps in `<PageShell>`, which exists solely to
-clear the fixed nav pill.
+Nav holds exactly four items - WORK, PROJECTS, WRITING, LEARNINGS - as the
+design system requires. LEARNINGS points at `/books`; the label and the route
+were named at different times.
+
+The bar collapses in two steps. Below `md` the wordmark shortens to
+`profile.shortName` ("Sid"), because the full name plus CONTACT and the menu
+button overflow a 390px pill. Below `lg` the four links and the HUMAN/AGENT
+toggle move into the disclosure menu - they only fit alongside the wordmark and
+CONTACT from about 1024px, and left in the bar they wrapped the pill onto a
+second row from 640px to about 900px. Measured at every step: one row at 360,
+390, 640, 700, 768, 820, 900, 960, 1024, 1100 and 1200. Every page except the homepage wraps in `<PageShell>`, which
+exists solely to clear the fixed nav pill.
+
+## The assistant
+
+The "Ask about me" section on the homepage is a chat box backed by
+[`src/app/api/chat/route.ts`](src/app/api/chat/route.ts), which sends the same
+markdown `/llms.txt` serves as the model's only source. Generated from
+`site.ts`, so the assistant cannot claim anything the pages don't.
+
+It runs on **OpenRouter**, whose API is OpenAI-compatible, so the route talks to
+it over plain `fetch` rather than pulling in an SDK for one endpoint. **Which
+model answers is server-side only** - it never appears in a response body, an
+error message or a header, so nothing the browser can see names it. Provider
+errors are logged server-side and returned to the visitor as a generic message
+for the same reason.
+
+**It needs a key.** Copy `.env.example` to `.env.local` and paste in an
+`OPENROUTER_API_KEY`. Without one the endpoint returns a 503 and the box says it
+isn't configured yet - nothing else on the site is affected.
+
+**Anyone who opens the page can spend against that key.** Set a credit limit on
+it in the OpenRouter dashboard before deploying. The route caps question length,
+history depth and output tokens, and rate-limits per IP, but that counter lives
+in memory: on a serverless host each new instance starts empty, so it slows
+abuse rather than capping spend. Move it to Redis or put the route behind your
+host's WAF if the site gets real traffic.
+
+**`reasoning: { enabled: false }` on the request is load-bearing.** The current
+model reasons by default and writes its whole chain of thought into `content` as
+plain text rather than into a separate `reasoning` field, so without this the
+visitor reads "Here's a thinking process: 1. Analyze User Input..." and the
+answer itself never arrives before `max_tokens` cuts it off. `reasoning:
+{ exclude: true }` only drops the separate field and does **not** fix it.
+
+### Scroll behaviour
+
+The section fills the viewport, pins while you scroll past it, then releases.
+That is `position: sticky` inside a taller wrapper, so the wrapper's surplus
+height *is* the pin duration: `h-[190svh]` around an `h-svh` panel buys about
+90vh of held scroll. `svh` rather than `vh` throughout - `100vh` on mobile is the
+height with browser chrome hidden, which would put the input under the address
+bar.
 
 ## Design system notes
 
@@ -179,6 +229,28 @@ site.
 departs from the source spec's "centre the hero headline" rule. A centred
 headline in a half-width column reads as accidental, and the whole page now
 shares a single left axis.
+
+## The shelf
+
+`/books` splits `books[]` by `bucket` into the three menu items in
+`bookBuckets`. Two things to know before adding to it:
+
+- **Covers are optional and fail soft.** `cover` points at a file in
+  `public/covers`. If it's unset *or the file 404s*, the shelf draws a
+  typographic cover instead (title and author on a flat ground from the site
+  palette). So a book can go up the moment you finish it, and a typo in a path
+  degrades rather than showing a broken image. All nine are real covers now;
+  the fallback is there for the tenth.
+- **`inProgress: true` replaces the takeaway with a NOT YET FINISHED tag.** The
+  remembered line is meant to be what survived finishing the book, so a book
+  you're halfway through doesn't get one.
+- **An empty bucket shows "Will be updated soon" behind a WIP barrier**, rather
+  than a blank panel that reads as a bug. AI & Tech and Science & Spirituality
+  are both empty right now by choice; everything sits in Books.
+
+The page has no visible header - the bucket menu says what it is, and a title
+above it pushed the shelf below the fold. The `<h1>` is still there for the
+document outline, just `sr-only`.
 
 ## Still to do
 
