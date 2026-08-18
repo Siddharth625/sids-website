@@ -25,7 +25,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "nvidia/nemotron-3.5-lightning:free";
+
+/* Tried in order, free first.
+   
+   The `:free` variants cost nothing but share one account-wide budget
+   of 50 requests per day across every free model on OpenRouter - so
+   when that runs out, trying a second free model is pointless and the
+   loop skips straight past it. The paid variant at the end is the
+   safety net: same model, no daily cap, billed per token at roughly
+   four hundredths of a cent per question. It only ever runs once the
+   free allowance is gone, so a normal day costs nothing. */
+const MODELS = [
+  { id: "nvidia/nemotron-3.5-lightning:free", free: true },
+  { id: "nvidia/nemotron-3-ultra-550b-a55b:free", free: true },
+  { id: "nvidia/nemotron-3.5-lightning", free: false },
+] as const;
 
 /* Guard rails. This endpoint is reachable by anyone who can open the
    page, so the limits are deliberately tight for the job: a visitor
@@ -159,9 +173,8 @@ export async function POST(request: Request) {
   const abort = new AbortController();
   const timeout = setTimeout(() => abort.abort(), UPSTREAM_TIMEOUT_MS);
 
-  let upstream: Response;
-  try {
-    upstream = await fetch(ENDPOINT, {
+  const callModel = (model: string) =>
+    fetch(ENDPOINT, {
       method: "POST",
       signal: abort.signal,
       headers: {
@@ -172,7 +185,7 @@ export async function POST(request: Request) {
         "x-title": `${profile.fullName} - site assistant`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         stream: true,
         max_tokens: MAX_OUTPUT_TOKENS,
         /* Load-bearing. This model reasons by default and writes the
@@ -189,21 +202,55 @@ export async function POST(request: Request) {
         messages: [{ role: "system", content: SYSTEM }, ...kept],
       }),
     });
-  } catch (error) {
-    clearTimeout(timeout);
-    console.error("[ask] upstream unreachable", error);
-    return fail("Couldn't reach the assistant. Try again in a moment.", 502);
+
+  let upstream: Response | null = null;
+  let lastStatus = 0;
+  let outOfFreeQuota = false;
+
+  for (const model of MODELS) {
+    /* Once the shared free allowance is gone, no other free model can
+       help - skip them and go straight to the paid fallback. */
+    if (outOfFreeQuota && model.free) continue;
+
+    let response: Response;
+    try {
+      response = await callModel(model.id);
+    } catch (error) {
+      console.error(`[ask] ${model.id} unreachable`, error);
+      lastStatus = 0;
+      continue;
+    }
+
+    if (response.ok && response.body) {
+      upstream = response;
+      break;
+    }
+
+    /* Read the body once, both to log it and to decide whether the
+       remaining free models are worth a round-trip. */
+    const detail = await response.text().catch(() => "");
+    console.error(`[ask] ${model.id} refused`, response.status, detail);
+    lastStatus = response.status;
+
+    if (detail.includes("free-models-per-day")) outOfFreeQuota = true;
   }
 
-  if (!upstream.ok || !upstream.body) {
+  if (!upstream) {
     clearTimeout(timeout);
-    /* Log the upstream detail server-side; return a generic message,
-       since provider errors can name the model. */
-    console.error("[ask] upstream error", upstream.status, await upstream.text().catch(() => ""));
+    /* The visitor never sees which model, or that there is more than
+       one - provider errors name them, so nothing from `detail` is
+       passed through. */
     return fail(
-      upstream.status === 429
-        ? "The assistant is busy right now. Try again in a moment."
-        : "Something broke on my end. Try again in a moment.",
+      outOfFreeQuota
+        ? /* Say which limit it is. "Busy, try again in a moment" sent
+             people back every few minutes to a wall that does not move
+             until the quota resets, and hid the fact that this is a
+             free-tier ceiling rather than something wrong with the
+             site. */
+          "Arthur is running on a free model, and the API limit for today has been hit. Please try again after some time, or reach Sid through the contact link on this page."
+        : lastStatus === 429
+          ? "The assistant is busy right now. Try again in a moment."
+          : "Something broke on my end. Try again in a moment.",
       502,
     );
   }

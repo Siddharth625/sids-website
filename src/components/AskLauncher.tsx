@@ -47,6 +47,21 @@ export default function AskLauncher() {
     return () => observer.disconnect();
   }, [pathname]);
 
+  /* Lock the page behind the sheet. Without this, scrolling inside
+     the transcript hands off to the document once it reaches its end
+     and the page creeps underneath. Restores whatever `overflow` was
+     there before rather than assuming it was the default. */
+  useEffect(() => {
+    if (!open) return;
+    const mobile = window.matchMedia("(max-width: 639px)");
+    if (!mobile.matches) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
   /* Escape closes, and focus moves into the panel when it opens. */
   useEffect(() => {
     if (!open) return;
@@ -67,7 +82,18 @@ export default function AskLauncher() {
           ref={panelRef}
           role="dialog"
           aria-label={`Chat with ${assistant.name}`}
-          className="fixed bottom-[96px] right-16 z-50 flex max-h-[min(560px,70svh)] w-[min(calc(100vw-32px),400px)] flex-col overflow-hidden rounded-3xl border border-veil-gray bg-paper-white sm:right-24"
+          /* Mobile-first: a full-screen sheet, so the page behind is
+             covered rather than showing through around the edges of a
+             floating card on a 390px screen. From `sm` up it becomes
+             the corner panel. Written in this order deliberately - the
+             mobile rules are the unprefixed ones, so there is no
+             reliance on which of two same-specificity utilities the
+             stylesheet happens to emit last.
+
+             The safe-area padding keeps the input and its question
+             counter clear of the home indicator on a notched phone,
+             where the sheet runs edge to edge. */
+          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-paper-white pb-[env(safe-area-inset-bottom)] sm:inset-auto sm:pb-0 sm:bottom-[96px] sm:right-24 sm:max-h-[min(560px,70svh)] sm:w-[min(calc(100vw-32px),400px)] sm:rounded-3xl sm:border sm:border-veil-gray"
         >
           <AskChat showContext={false} onClose={() => setOpen(false)} />
         </div>
@@ -83,7 +109,11 @@ export default function AskLauncher() {
            avatar, so the control stays the same size in every language
            and never crowds the corner on a phone. */
         title={open ? `Close ${assistant.name}` : `Ask ${assistant.name}`}
-        className="fixed bottom-24 right-16 z-50 flex size-[56px] items-center justify-center overflow-hidden rounded-full border border-veil-gray bg-paper-white transition-colors hover:border-ink-black sm:right-24"
+        className={`fixed bottom-24 right-16 z-50 flex size-[56px] items-center justify-center overflow-hidden rounded-full border border-veil-gray bg-paper-white transition-colors hover:border-ink-black sm:right-24 ${
+          /* The full-screen sheet carries its own CLOSE, so the round
+             button would only be sitting on top of it. */
+          open ? "max-sm:hidden" : ""
+        }`}
       >
         {open ? (
           <svg

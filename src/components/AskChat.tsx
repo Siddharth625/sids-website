@@ -181,10 +181,6 @@ export default function AskChat({
     setDraft("");
     setBusy(true);
 
-    const nextCount = asked + 1;
-    setAsked(nextCount);
-    sessionStorage.setItem(ASKED_KEY, String(nextCount));
-
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -199,6 +195,11 @@ export default function AskChat({
           .json()
           .catch(() => ({ error: "Something broke. Try again in a moment." }));
         setTurns([...next, { role: "assistant", content: error }]);
+        /* Deliberately not counted. A question that never got an
+           answer should not spend one of the three - otherwise a
+           visitor who arrives while the daily quota is exhausted burns
+           the whole allowance on error messages and is handed the
+           contact form having learned nothing about Sid. */
         return;
       }
 
@@ -234,6 +235,11 @@ export default function AskChat({
       }
 
       setTurns([...next, { role: "assistant", content: answer, stats }]);
+
+      /* Counted here, once an answer actually arrived. */
+      const nextCount = asked + 1;
+      setAsked(nextCount);
+      sessionStorage.setItem(ASKED_KEY, String(nextCount));
     } catch {
       setTurns([
         ...next,
@@ -305,8 +311,16 @@ export default function AskChat({
   /* The chat panel. Squarer than the rest of the site on purpose - a
      44px radius on a panel this size reads as a pill, and the message
      bubbles inside it need a radius of their own to sit against. */
+  /* Embedded in the launcher the surrounding sheet already supplies
+     the border, the rounding and the height, so the panel just fills
+     it. Left with its own chrome it drew a second rounded box inside
+     the first and stopped short of the bottom of a full-screen sheet. */
+  const panelClass = showContext
+    ? "flex min-h-0 flex-col rounded-3xl border border-veil-gray bg-paper-white/80 backdrop-blur-sm max-lg:min-h-[420px] lg:h-[min(560px,70svh)]"
+    : "flex min-h-0 flex-1 flex-col";
+
   const chat = (
-          <div className="flex min-h-0 flex-col rounded-3xl border border-veil-gray bg-paper-white/80 backdrop-blur-sm max-lg:min-h-[420px] lg:h-[min(560px,70svh)]">
+          <div className={panelClass}>
             <h2 className="sr-only">{sections.ask.title}</h2>
 
             {/* Only once the form takes the panel over. Before
@@ -428,7 +442,7 @@ export default function AskChat({
 
   if (!showContext) {
     return (
-      <div className={`flex min-h-0 flex-col ${className}`}>
+      <div className={`flex min-h-0 flex-1 flex-col ${className}`}>
         <div className="flex shrink-0 items-center justify-between gap-12 border-b border-veil-gray px-24 py-12">
           <div className="flex items-center gap-12">
             <Image

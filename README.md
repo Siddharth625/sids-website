@@ -93,6 +93,27 @@ in memory: on a serverless host each new instance starts empty, so it slows
 abuse rather than capping spend. Move it to Redis or put the route behind your
 host's WAF if the site gets real traffic.
 
+**Three models, tried in order, free first** (`MODELS` in the chat route):
+
+| # | Model | Cost |
+|---|---|---|
+| 1 | `nemotron-3.5-lightning:free` | free, shared 50/day |
+| 2 | `nemotron-3-ultra-550b-a55b:free` | free, same shared 50/day |
+| 3 | `nemotron-3.5-lightning` (paid) | ~$0.0004 per question |
+
+The `:free` variants share **one account-wide budget of 50 requests per day**
+across every free model on OpenRouter - so once that is gone, a second free
+model cannot help. The loop knows this: on a `free-models-per-day` error it sets
+a flag and skips the remaining free entries rather than spending round-trips
+proving the point, going straight to the paid one.
+
+The paid entry is the safety net, and it is the same model as #1 - so the
+answers do not change when it takes over, only the bill. A normal day never
+reaches it and costs nothing; a day that exhausts the free 50 costs roughly four
+hundredths of a cent per question after that (about 2,600 questions per dollar).
+Adding $10 of credits on OpenRouter also raises the free ceiling to 1,000/day,
+which would push the paid fallback further out of reach still.
+
 **`reasoning: { enabled: false }` on the request is load-bearing.** The current
 model reasons by default and writes its whole chain of thought into `content` as
 plain text rather than into a separate `reasoning` field, so without this the
