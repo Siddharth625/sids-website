@@ -91,6 +91,16 @@ export const workQuote = {
   author: "Jim Collins",
 } as const;
 
+/* The assistant in the "Ask about me" section. Named and given a face
+   so a visitor knows they are talking to Sid's agent rather than to
+   Sid - which also makes the third-person voice read as deliberate
+   rather than as a bot that cannot say "I". */
+export const assistant = {
+  name: "Arthur",
+  role: "Sid's agent",
+  avatar: "/arthur.png",
+} as const;
+
 /* Opens /books, above the bucket menu. */
 export const booksQuote = {
   text: "You don't understand anything until you learn it more than one way.",

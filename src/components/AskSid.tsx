@@ -1,75 +1,155 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import MeshGradient from "@/components/MeshGradient";
-import { profile, sections } from "@/content/site";
+import { assistant, profile, sections } from "@/content/site";
+import {
+  type AskEvent,
+  CONTEXT_BUDGET,
+  ctasFor,
+  FREE_QUESTIONS,
+} from "@/lib/ask";
 
 /**
- * The assistant section: a chat box, grounded in the same profile
- * document that /llms.txt serves, that answers questions about Sid.
+ * The assistant section: a chat box grounded in the same profile
+ * document `/llms.txt` serves, with the context it is working from
+ * shown alongside it.
  *
- * **The scroll behaviour** is the reason this is shaped the way it is.
- * The brief was a panel that fills the viewport, pins while you scroll
- * past it, then releases. That is `position: sticky` inside a taller
- * wrapper: the wrapper's extra height *is* the pin duration, so
- * `h-[190svh]` around an `h-svh` panel buys about 90vh of scroll with
- * the panel held still. Shorten the wrapper and it barely pins;
- * lengthen it and the page feels stuck.
+ * **The scroll behaviour.** The panel fills the viewport, pins while
+ * you scroll past it, then releases: `position: sticky` inside a
+ * taller wrapper, where the wrapper's surplus height *is* the pin
+ * duration. `svh` rather than `vh` throughout - `100vh` on mobile is
+ * the height with browser chrome hidden, which would put the input
+ * under the address bar.
  *
- * `svh` rather than `vh` throughout: on mobile `100vh` is the height
- * with browser chrome *hidden*, so a panel sized in `vh` has its last
- * ~90px - here, the input - under the address bar until you scroll.
+ * **The transcript owns the only inner scrollbar**, with
+ * `overscroll-contain` so reaching its end stops there rather than
+ * yanking the page. That is also why the panel is a flex column with
+ * `min-h-0` on the middle child: without it a long transcript grows
+ * the flex item instead of scrolling inside it, and pushes the input
+ * off-screen.
  *
- * **Why the transcript owns the only inner scrollbar.** A pinned panel
- * with its own scrolling region is a trap if the region ever swallows
- * the page scroll, so the transcript is the one scrollable thing and
- * it uses `overscroll-contain`: hitting its end stops there rather
- * than yanking the page. Everything else is fixed height, which is
- * also why the panel is a flex column with `min-h-0` on the middle
- * child - without it a long transcript grows the flex item instead of
- * scrolling inside it, and pushes the input off-screen.
+ * **The question limit is a lead gate, not a security control.** It
+ * lives in `sessionStorage`, so anyone who wants a fourth question can
+ * have one. Spend is protected by the per-IP limit in the route; this
+ * is only here to turn an interested visitor into an introduction.
  */
 
-/* Openers. Three, because a row of six reads as a menu you have to
-   choose from rather than a hint that you can type anything. Each one
-   is answerable from the profile document - a suggested question the
-   assistant has to punt on is a bad first impression. */
+/* Openers. Three, because a row of six reads as a menu you must choose
+   from rather than a hint that you can type anything. Each is
+   answerable from the profile document - a suggested question the
+   assistant has to decline is a bad first impression. */
 const OPENERS = [
   "What does he do now?",
   "What has he built?",
   "Why should I hire him?",
 ];
 
-type Turn = { role: "user" | "assistant"; content: string };
+const ASKED_KEY = "ask-sid:asked";
+const TURNS_KEY = "ask-sid:turns";
+
+type Turn = {
+  role: "user" | "assistant";
+  content: string;
+  /* Present once the answer is complete. */
+  stats?: { inTokens: number; outTokens: number; ms: number };
+};
+
+type Lead = { name: string; email: string; phone: string; reason: string };
+
+const EMPTY_LEAD: Lead = { name: "", email: "", phone: "", reason: "" };
 
 export default function AskSid() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [asked, setAsked] = useState(0);
+  const [contextReady, setContextReady] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const [lead, setLead] = useState<Lead>(EMPTY_LEAD);
+  const [leadError, setLeadError] = useState("");
+  const [leadSending, setLeadSending] = useState(false);
+  const [leadSent, setLeadSent] = useState(false);
 
   const transcriptRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  /* Follow the answer as it streams. */
+  /* Both the count and the transcript are per browser session, so a
+     new tab starts fresh and closing this one takes the conversation
+     with it. `sessionStorage` rather than `localStorage` is the whole
+     point: a visitor should not find last week's questions waiting
+     for them, and nothing here is worth keeping on their machine. */
+  useEffect(() => {
+    const storedCount = Number(sessionStorage.getItem(ASKED_KEY) ?? "0");
+    if (Number.isFinite(storedCount)) setAsked(storedCount);
+
+    const storedTurns = sessionStorage.getItem(TURNS_KEY);
+    if (storedTurns) {
+      try {
+        const parsed = JSON.parse(storedTurns);
+        if (Array.isArray(parsed)) setTurns(parsed);
+      } catch {
+        sessionStorage.removeItem(TURNS_KEY);
+      }
+    }
+  }, []);
+
+  /* Persist on every change rather than only at the end of an answer,
+     so a reload mid-stream still restores what had arrived. */
+  useEffect(() => {
+    if (turns.length === 0) return;
+    sessionStorage.setItem(TURNS_KEY, JSON.stringify(turns));
+  }, [turns]);
+
+  /* The context card resolves on mount rather than reporting a real
+     fetch: the profile document is compiled into the route's system
+     prompt, so by the time this renders it is already loaded. The
+     short delay exists so the visitor sees *what* the assistant has
+     been given rather than a state that was never not-ready. */
+  useEffect(() => {
+    const id = setTimeout(() => setContextReady(true), 900);
+    return () => clearTimeout(id);
+  }, []);
+
   useEffect(() => {
     const el = transcriptRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns]);
 
+  const gated = asked >= FREE_QUESTIONS;
+
+  /* Tokens in play. The last exchange's prompt count already includes
+     the profile document and the history the route kept, so it is the
+     conversation's real footprint rather than a running sum. */
+  const lastStats = [...turns].reverse().find((t) => t.stats)?.stats;
+  const contextUsed = lastStats
+    ? lastStats.inTokens + lastStats.outTokens
+    : 0;
+  const contextPct = Math.min(100, (contextUsed / CONTEXT_BUDGET) * 100);
+
   async function ask(question: string) {
     const text = question.trim();
-    if (!text || busy) return;
+    if (!text || busy || gated) return;
 
     const next: Turn[] = [...turns, { role: "user", content: text }];
     setTurns([...next, { role: "assistant", content: "" }]);
     setDraft("");
     setBusy(true);
 
+    const spent = asked + 1;
+    setAsked(spent);
+    sessionStorage.setItem(ASKED_KEY, String(spent));
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({
+          messages: next.map(({ role, content }) => ({ role, content })),
+        }),
       });
 
       if (!response.ok || !response.body) {
@@ -82,18 +162,43 @@ export default function AskSid() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
       let answer = "";
+      let stats: Turn["stats"];
 
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        answer += decoder.decode(value, { stream: true });
-        setTurns([...next, { role: "assistant", content: answer }]);
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: AskEvent;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+
+          if (event.t === "delta") answer += event.v;
+          else if (event.t === "done") stats = event;
+          else if (event.t === "error") answer += `\n\n${event.message}`;
+        }
+
+        setTurns([...next, { role: "assistant", content: answer, stats }]);
       }
+
+      setTurns([...next, { role: "assistant", content: answer, stats }]);
     } catch {
       setTurns([
         ...next,
-        { role: "assistant", content: "Couldn't reach the assistant. Try again in a moment." },
+        {
+          role: "assistant",
+          content: "Couldn't reach the assistant. Try again in a moment.",
+        },
       ]);
     } finally {
       setBusy(false);
@@ -101,7 +206,40 @@ export default function AskSid() {
     }
   }
 
+  async function submitLead(event: React.FormEvent) {
+    event.preventDefault();
+    if (leadSending) return;
+
+    if (!lead.name.trim()) return setLeadError("Your name, please.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email.trim())) {
+      return setLeadError("That email doesn't look right.");
+    }
+
+    setLeadError("");
+    setLeadSending(true);
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(lead),
+      });
+      if (!response.ok) {
+        const { error } = await response
+          .json()
+          .catch(() => ({ error: "Couldn't send that." }));
+        setLeadError(error);
+        return;
+      }
+      setLeadSent(true);
+    } catch {
+      setLeadError("Couldn't send that. Try again in a moment.");
+    } finally {
+      setLeadSending(false);
+    }
+  }
+
   const empty = turns.length === 0;
+  const exchanges = turns.filter((t) => t.role === "user").length;
 
   return (
     <section id="ask" aria-label={sections.ask.title} className="relative">
@@ -110,99 +248,410 @@ export default function AskSid() {
         <div className="sticky top-0 isolate flex h-svh flex-col overflow-hidden px-24 pb-32 pt-[104px] sm:px-40 sm:pb-40">
           <MeshGradient flip />
 
-          {/* One centred column. The explanatory panel that used to sit
-              on the left is gone: the openers inside the box already
-              say what it does, and a wall of prose next to a chat box
-              is read once and then in the way on every later visit. */}
-          <div className="mx-auto flex min-h-0 w-full max-w-[720px] flex-1 flex-col justify-center">
-            <h2 className="sr-only">{sections.ask.title}</h2>
+          <div className="mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 items-center">
+            <div className="grid min-h-0 w-full gap-24 lg:grid-cols-[280px_1fr]">
+              <ContextCard
+                ready={contextReady}
+                used={contextUsed}
+                pct={contextPct}
+                stats={lastStats}
+                asked={asked}
+              />
 
-            <div className="flex min-h-0 flex-col rounded-card border border-veil-gray bg-paper-white/80 backdrop-blur-sm max-md:flex-1 md:h-[min(560px,72svh)]">
-              <div
-                ref={transcriptRef}
-                className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-24 sm:p-32"
-                aria-live="polite"
-                aria-atomic="false"
-              >
-                {empty ? (
-                  <div>
-                    <p className="text-body leading-body tracking-body text-ink-black">
-                      {sections.ask.intro}
+              {/* The chat. Squarer than the rest of the site on
+                  purpose - a 44px radius on a panel this size reads as
+                  a pill, and the message bubbles inside it need a
+                  radius of their own to sit against. */}
+              <div className="flex min-h-0 flex-col rounded-2xl border border-veil-gray bg-paper-white/80 backdrop-blur-sm max-lg:min-h-[420px] lg:h-[min(560px,70svh)]">
+                <h2 className="sr-only">{sections.ask.title}</h2>
+
+                {/* The toggle earns its place once the form takes the
+                    panel over: without it the conversation a visitor
+                    just had becomes unreachable at exactly the moment
+                    they are asked to write to Sid about it. */}
+                {turns.length > 0 && (
+                  <div className="flex shrink-0 items-center justify-between gap-12 border-b border-veil-gray px-24 py-12 sm:px-32">
+                    <p className="label text-smoke-gray">
+                      {showHistory ? "THIS SESSION" : "\u00A0"}
                     </p>
-                    <p className="label mt-24 text-smoke-gray">TRY ASKING</p>
-                    <ul className="mt-16 flex flex-col items-start gap-8">
-                      {OPENERS.map((opener) => (
-                        <li key={opener}>
-                          <button
-                            type="button"
-                            onClick={() => ask(opener)}
-                            className="rounded-full border border-veil-gray px-16 py-8 text-left text-caption leading-caption tracking-caption text-ink-black transition-colors hover:border-ink-black"
-                          >
-                            {opener}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => setShowHistory((v) => !v)}
+                      className="label link-underline text-ink-black"
+                    >
+                      {showHistory ? "BACK" : `HISTORY (${exchanges})`}
+                    </button>
                   </div>
-                ) : (
-                  <ul className="flex flex-col gap-24">
-                    {turns.map((turn, index) => (
-                      <li
-                        key={index}
-                        className={
-                          turn.role === "user" ? "flex justify-end" : ""
-                        }
+                )}
+
+                <div
+                  ref={transcriptRef}
+                  className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-24 sm:p-32"
+                  aria-live="polite"
+                >
+                  {showHistory ? (
+                    <Transcript turns={turns} busy={busy} />
+                  ) : leadSent ? (
+                    <p className="text-body leading-body tracking-body text-ink-black">
+                      Thanks for reaching out! You will get a response soon.
+                    </p>
+                  ) : gated ? (
+                    <LeadForm
+                      lead={lead}
+                      setLead={setLead}
+                      error={leadError}
+                      sending={leadSending}
+                      onSubmit={submitLead}
+                    />
+                  ) : empty ? (
+                    <div>
+                      <p className="text-body leading-body tracking-body text-ink-black">
+                        {sections.ask.intro}
+                      </p>
+                      <p className="label mt-24 text-smoke-gray">
+                        ASK {assistant.name.toUpperCase()}
+                      </p>
+                      <ul className="mt-16 flex flex-col items-start gap-8">
+                        {OPENERS.map((opener) => (
+                          <li key={opener}>
+                            <button
+                              type="button"
+                              onClick={() => ask(opener)}
+                              className="rounded-lg border border-veil-gray px-16 py-8 text-left text-caption leading-caption tracking-caption text-ink-black transition-colors hover:border-ink-black"
+                            >
+                              {opener}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <Transcript turns={turns} busy={busy} />
+                  )}
+                </div>
+
+                {!gated && (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      ask(draft);
+                    }}
+                    className="shrink-0 border-t border-veil-gray p-16 sm:px-24 sm:py-16"
+                  >
+                    <div className="flex items-end gap-12 rounded-xl border border-veil-gray bg-paper-white px-16 py-12">
+                      <label htmlFor="ask-input" className="sr-only">
+                        Ask a question about {profile.fullName}
+                      </label>
+                      <textarea
+                        ref={inputRef}
+                        id="ask-input"
+                        rows={1}
+                        value={draft}
+                        onChange={(event) => setDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          /* Enter sends, shift+enter breaks the line -
+                             the convention every chat box uses. */
+                          if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            ask(draft);
+                          }
+                        }}
+                        placeholder="Ask anything"
+                        maxLength={1000}
+                        disabled={busy}
+                        className="no-scrollbar max-h-[120px] min-w-0 flex-1 resize-none bg-transparent text-body leading-body tracking-body text-ink-black outline-none placeholder:text-smoke-gray disabled:opacity-60"
+                      />
+                      <button
+                        type="submit"
+                        disabled={busy || !draft.trim()}
+                        className="label shrink-0 rounded-lg bg-ink-black px-16 py-8 text-paper-white transition-opacity disabled:opacity-30"
                       >
-                        {turn.role === "user" ? (
-                          <p className="max-w-[85%] rounded-card border border-veil-gray px-16 py-12 text-body leading-body tracking-body text-ink-black">
-                            {turn.content}
-                          </p>
-                        ) : (
-                          <p className="whitespace-pre-wrap text-body leading-body tracking-body text-ink-black">
-                            {turn.content || (
-                              <span className="text-smoke-gray">Thinking</span>
-                            )}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                        {busy ? "..." : "ASK"}
+                      </button>
+                    </div>
+
+                    <p className="label mt-12 text-smoke-gray">
+                      {FREE_QUESTIONS - asked} OF {FREE_QUESTIONS} QUESTIONS
+                      LEFT
+                    </p>
+                  </form>
                 )}
               </div>
-
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  ask(draft);
-                }}
-                className="flex shrink-0 items-center gap-12 border-t border-veil-gray p-16 sm:px-32 sm:py-24"
-              >
-                <label htmlFor="ask-input" className="sr-only">
-                  Ask a question about {profile.fullName}
-                </label>
-                <input
-                  ref={inputRef}
-                  id="ask-input"
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Ask anything"
-                  autoComplete="off"
-                  maxLength={1000}
-                  disabled={busy}
-                  className="min-w-0 flex-1 bg-transparent text-body leading-body tracking-body text-ink-black outline-none placeholder:text-smoke-gray disabled:opacity-60"
-                />
-                <button
-                  type="submit"
-                  disabled={busy || !draft.trim()}
-                  className="label shrink-0 rounded-full bg-ink-black px-16 py-8 text-paper-white transition-opacity disabled:opacity-30"
-                >
-                  {busy ? "..." : "ASK"}
-                </button>
-              </form>
             </div>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/** The conversation itself, live or replayed from session history. */
+function Transcript({ turns, busy }: { turns: Turn[]; busy: boolean }) {
+  return (
+    <ul className="flex flex-col gap-32">
+      {turns.map((turn, index) => (
+        <li key={index}>
+          {turn.role === "user" ? (
+            <div className="flex justify-end">
+              <p className="max-w-[85%] rounded-2xl rounded-br-lg border border-veil-gray bg-paper-white px-16 py-12 text-body leading-body tracking-body text-ink-black">
+                {turn.content}
+              </p>
+            </div>
+          ) : (
+            <Answer turn={turn} pending={busy} />
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** One assistant turn: the answer, then what it cost and where to go next. */
+function Answer({ turn, pending }: { turn: Turn; pending: boolean }) {
+  const ctas = turn.stats ? ctasFor(turn.content) : [];
+
+  return (
+    <div className="flex gap-16">
+      <Image
+        src={assistant.avatar}
+        alt={assistant.name}
+        width={296}
+        height={296}
+        className="mt-4 size-32 shrink-0 rounded-full border border-veil-gray bg-paper-white object-cover"
+      />
+
+      <div className="min-w-0 flex-1">
+        <p className="whitespace-pre-wrap text-body leading-body tracking-body text-ink-black">
+          {turn.content || (
+            <span className="text-smoke-gray">{pending ? "Thinking" : " "}</span>
+          )}
+        </p>
+
+        {ctas.length > 0 && (
+          <ul className="mt-16 flex flex-wrap gap-8">
+            {ctas.map((cta) => (
+              <li key={cta.href}>
+                <Link
+                  href={cta.href}
+                  className="label inline-block rounded-lg border border-veil-gray px-12 py-4 text-ink-black transition-colors hover:border-ink-black"
+                >
+                  {cta.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {turn.stats && (
+          <p className="label mt-16 text-smoke-gray">
+            {turn.stats.inTokens.toLocaleString()} IN ·{" "}
+            {turn.stats.outTokens.toLocaleString()} OUT ·{" "}
+            {(turn.stats.ms / 1000).toFixed(1)}S
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Left card: what the assistant is working from, and what it has spent. */
+function ContextCard({
+  ready,
+  used,
+  pct,
+  stats,
+  asked,
+}: {
+  ready: boolean;
+  used: number;
+  pct: number;
+  stats?: Turn["stats"];
+  asked: number;
+}) {
+  const sources = [
+    "Profile and bio",
+    "Work history",
+    "Projects",
+    "Writing",
+    "Reading",
+  ];
+
+  return (
+    <aside className="flex flex-col gap-24 rounded-2xl border border-veil-gray bg-paper-white/70 p-24 backdrop-blur-sm max-lg:hidden">
+      <div className="flex items-center gap-12">
+        <Image
+          src={assistant.avatar}
+          alt=""
+          width={296}
+          height={296}
+          className="size-40 shrink-0 rounded-full border border-veil-gray bg-paper-white object-cover"
+        />
+        <div className="min-w-0">
+          <p className="text-body leading-body tracking-body text-ink-black">
+            {assistant.name}
+          </p>
+          <p className="label text-smoke-gray">{assistant.role}</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="label text-smoke-gray">CONTEXT</p>
+        <p className="mt-12 text-body leading-body tracking-body text-ink-black">
+          {ready
+            ? "This whole site is loaded. The assistant answers from it and nothing else."
+            : "Loading the site into context…"}
+        </p>
+      </div>
+
+      <ul className="flex flex-col gap-8">
+        {sources.map((source, index) => (
+          <li
+            key={source}
+            className="flex items-center gap-12 text-caption leading-caption tracking-caption text-mist-gray"
+          >
+            {/* Ticks arrive in sequence rather than at once, so the
+                card reads as loading rather than as a static list. */}
+            <span
+              aria-hidden="true"
+              className={`block size-8 shrink-0 rounded-full transition-colors duration-500 ${
+                ready ? "bg-klein-blue" : "bg-veil-gray"
+              }`}
+              style={{ transitionDelay: `${index * 90}ms` }}
+            />
+            {source}
+          </li>
+        ))}
+      </ul>
+
+      <div>
+        <div className="flex items-baseline justify-between gap-8">
+          <p className="label text-smoke-gray">CONTEXT USED</p>
+          <p className="label text-ink-black">
+            {used.toLocaleString()}/{CONTEXT_BUDGET.toLocaleString()}
+          </p>
+        </div>
+        <div
+          className="mt-12 h-4 w-full overflow-hidden rounded-full bg-veil-gray"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={CONTEXT_BUDGET}
+          aria-valuenow={used}
+          aria-label="Context used"
+        >
+          <div
+            className="h-full rounded-full bg-klein-blue transition-[width] duration-500"
+            style={{ width: `${Math.max(pct, used > 0 ? 2 : 0)}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-veil-gray pt-16">
+        <p className="label text-smoke-gray">LAST RESPONSE</p>
+        <p className="mt-8 text-caption leading-caption tracking-caption text-mist-gray">
+          {stats
+            ? `${stats.inTokens.toLocaleString()} in, ${stats.outTokens.toLocaleString()} out, ${(stats.ms / 1000).toFixed(1)}s`
+            : "Nothing asked yet"}
+        </p>
+        <p className="mt-8 text-caption leading-caption tracking-caption text-mist-gray">
+          {Math.max(0, FREE_QUESTIONS - asked)} of {FREE_QUESTIONS} questions
+          left
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+/** Shown once the question allowance is spent. */
+function LeadForm({
+  lead,
+  setLead,
+  error,
+  sending,
+  onSubmit,
+}: {
+  lead: Lead;
+  setLead: (lead: Lead) => void;
+  error: string;
+  sending: boolean;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
+  const field =
+    "mt-8 w-full rounded-lg border border-veil-gray bg-paper-white px-16 py-12 text-body leading-body tracking-body text-ink-black outline-none placeholder:text-smoke-gray focus:border-ink-black";
+
+  return (
+    <form onSubmit={onSubmit}>
+      <p className="text-body leading-body tracking-body text-ink-black">
+        That&rsquo;s the {FREE_QUESTIONS} questions. Leave your details and
+        Sid will pick it up from here.
+      </p>
+
+      <div className="mt-24 flex flex-col gap-16">
+        <div>
+          <label htmlFor="lead-name" className="label text-smoke-gray">
+            NAME
+          </label>
+          <input
+            id="lead-name"
+            required
+            value={lead.name}
+            onChange={(e) => setLead({ ...lead, name: e.target.value })}
+            className={field}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="lead-email" className="label text-smoke-gray">
+            EMAIL
+          </label>
+          <input
+            id="lead-email"
+            type="email"
+            required
+            value={lead.email}
+            onChange={(e) => setLead({ ...lead, email: e.target.value })}
+            className={field}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="lead-phone" className="label text-smoke-gray">
+            PHONE (OPTIONAL)
+          </label>
+          <input
+            id="lead-phone"
+            value={lead.phone}
+            onChange={(e) => setLead({ ...lead, phone: e.target.value })}
+            className={field}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="lead-reason" className="label text-smoke-gray">
+            REASON FOR CONTACTING (OPTIONAL)
+          </label>
+          <textarea
+            id="lead-reason"
+            rows={3}
+            value={lead.reason}
+            onChange={(e) => setLead({ ...lead, reason: e.target.value })}
+            className={`${field} resize-none`}
+          />
+        </div>
+      </div>
+
+      {error && (
+        <p className="mt-16 text-caption leading-caption tracking-caption text-ink-black">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={sending}
+        className="label mt-24 rounded-lg bg-ink-black px-16 py-8 text-paper-white transition-opacity disabled:opacity-30"
+      >
+        {sending ? "SENDING..." : "SEND"}
+      </button>
+    </form>
   );
 }
