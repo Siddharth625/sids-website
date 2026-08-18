@@ -17,7 +17,7 @@ npm run build    # all routes prerender as static HTML
 the hero H1, the page title and the footer copyright.
 
 Nothing visitor-facing is hardcoded in components. Placeholders are in CAPS
-(`YOUR ROLE`, `BOOK TITLE`, `YOUR-HANDLE`) — search for them and replace.
+(`YOUR ROLE`, `BOOK TITLE`, `YOUR-HANDLE`) - search for them and replace.
 
 | What | Where |
 | --- | --- |
@@ -40,7 +40,7 @@ Nothing visitor-facing is hardcoded in components. Placeholders are in CAPS
 | `/books` | Full shelf, sorted reading → finished → queued |
 | `/knowledge` | All notes |
 
-Nav holds exactly four items — WORK, PROJECTS, WRITING, LIBRARY — as the design
+Nav holds exactly four items - WORK, PROJECTS, WRITING, LIBRARY - as the design
 system requires; Books and the Knowledge Bank are reached through `/library`.
 Every page except the homepage wraps in `<PageShell>`, which exists solely to
 clear the fixed nav pill.
@@ -50,19 +50,19 @@ clear the fixed nav pill.
 The `@theme` block in `globals.css` is the amra token set verbatim. Some
 consequences worth knowing before you edit styles:
 
-- **Weight 400 only.** There is no bold in this system — hierarchy comes from
+- **Weight 400 only.** There is no bold in this system - hierarchy comes from
   size and letter-spacing. Only weight 400 of Inter Tight is loaded, so
   `font-bold` has nothing to resolve to. UA defaults on `<h1>`–`<h6>`,
   `<strong>` and `<b>` are reset to 400 as well.
 - **The accent `#002fa7` (International Klein Blue) appears in exactly one
-  place** — the CONTACT button. Adding a second breaks the whole effect. It
+  place** - the CONTACT button. Adding a second breaks the whole effect. It
   replaces the spec's `#acafff`, and because it's dark rather than a pale tint,
-  its foreground is white (`--color-on-accent`), not `#141414` — ink-black on
+  its foreground is white (`--color-on-accent`), not `#141414` - ink-black on
   it measures 1.7:1 and fails WCAG.
 - **The nav pill inverts on scroll.** Transparent over white at the top of the
   page (ink-black wordmark and links, accent-filled CONTACT button); accent-
   filled once scrolled, at which point the wordmark and links go white and the
-  CONTACT button flips to a white fill with accent text — an accent button on
+  CONTACT button flips to a white fill with accent text - an accent button on
   an accent pill would be invisible. Both states measure 10.69:1 or better.
   The focus ring inverts to white inside the filled pill for the same reason.
 - **Spacing tokens override Tailwind's dynamic scale.** Because `--spacing-4:
@@ -80,7 +80,7 @@ consequences worth knowing before you edit styles:
 
 The original spec's four font families (`'Primary Font'`, etc.) are placeholder
 names that resolve to nothing. They're all mapped onto `--font-amra-sans`, which
-is **Inter Tight** — the spec's own named substitute — loaded via `next/font`.
+is **Inter Tight** - the spec's own named substitute - loaded via `next/font`.
 To swap in a licensed face (Neue Haas Grotesk, Söhne), change `--font-amra-sans`
 in `globals.css` and every utility follows.
 
@@ -101,15 +101,15 @@ no layout changes needed.
 argument, not its decoration. Particles rest as scattered noise and resolve into
 the shapes an AI PM actually pulls out of messy data:
 
-**Ambient set** — cycles on its own:
+**Ambient set** - cycles on its own:
 
 | Figure | Reads as |
 | --- | --- |
 | **Clusters** | Raw observations separating into distinct themes |
 | **Curve** | A noisy trace converging, plotted against axes |
-| **Attention** | A sparse matrix — what the model decided mattered |
+| **Attention** | A sparse matrix - what the model decided mattered |
 
-**Concept set** — swaps in while the pointer is over the field, and back out on
+**Concept set** - swaps in while the pointer is over the field, and back out on
 leave: an icon over its word, for **Prioritization**, **Positioning**,
 **Process** and **People**. On touch, tapping the field cycles them.
 
@@ -120,7 +120,7 @@ matter for legibility:
 
 - **Dots shrink to 1.3 in concept mode.** At the ambient size a dot is wider
   than a letter stroke, so the counters fill in and the word reads as a blob.
-- **The label is fitted to the canvas width**, not set at a fixed size —
+- **The label is fitted to the canvas width**, not set at a fixed size -
   "PRIORITIZATION" is twice the length of "PEOPLE", and at one size either the
   long word overflows or the short one is too small to survive being drawn in
   dots.
@@ -130,8 +130,8 @@ the new figure goes into B, and the cycle restarts on a shorter 5s duration so
 the concept arrives in a couple of seconds rather than up to 13s later.
 
 **Seamlessness is the fiddly part.** `snapshotInto` reproduces the vertex shader
-term for term on the CPU — per-particle arrival stagger, both drift terms, the
-reveal ramp and the scatter — because a naive uniform mix teleports the field to
+term for term on the CPU - per-particle arrival stagger, both drift terms, the
+reveal ramp and the scatter - because a naive uniform mix teleports the field to
 a fully-formed figure the instant you hover from mid-scatter. The figure drift
 is subtracted back out, since the shader re-adds it at `u = 0`. `LEAD` is
 duplicated between the shader and the CPU for this reason; if you change one,
@@ -142,7 +142,7 @@ a concept by appending to `CONCEPTS`.
 
 - **It only starts once the pointer moves in the first fold.** Before that it
   renders one still frame of noise and runs no animation loop at all.
-- **The cycle is continuous — there is no hold phase.** The blend runs
+- **The cycle is continuous - there is no hold phase.** The blend runs
   unbroken and is eased with smootherstep, slow at both ends and quick through
   the middle, so a figure lingers long enough to read without ever halting.
   Resolved figures also carry a small per-particle drift; without it they are
@@ -153,13 +153,13 @@ a concept by appending to `CONCEPTS`.
   and restates "signal over noise" on every change.
 - **The scatter curve is `sin(πu)⁸`, not `sin(πu)`.** Position is a straight
   mix between the noise and figure buffers, and the noise cloud is wider than
-  the figures — so even 10% of noise left in jitters particles further than a
+  the figures - so even 10% of noise left in jitters particles further than a
   cluster's own spread and the figure stops reading. Only a narrow, deep spike
   keeps the field legible for most of the cycle.
 - **Legibility comes from anchors.** The curve has particle-drawn axes and the
   matrix has a frame; without them they read as a squiggle and as floating
   squares. Cluster spread is held well under half the minimum centre separation
-  — at wider spreads neighbouring tails merge into one blob.
+  - at wider spreads neighbouring tails merge into one blob.
 - Colour carries the idea too: noise is mist-gray, resolved signal is Klein
   blue, and the ink is held back until a figure has nearly formed.
 - The next figure is built in `requestIdleCallback` during the hold rather than
@@ -172,7 +172,7 @@ a concept by appending to `CONCEPTS`.
 
 The terminal-style card that used to sit in the right half of the hero was
 replaced by the cymatic plate. `public/portrait.jpg` is still on disk but is no
-longer referenced anywhere — your portrait does not currently appear on the
+longer referenced anywhere - your portrait does not currently appear on the
 site.
 
 **Note:** filling the right half means the hero headline is left-aligned, which
@@ -183,6 +183,6 @@ shares a single left axis.
 ## Still to do
 
 - Replace every CAPS placeholder in `src/content/site.ts`
-- `/writing` links point at `/writing/post-slug` routes that don't exist yet —
+- `/writing` links point at `/writing/post-slug` routes that don't exist yet -
   add a `[slug]` route (MDX or otherwise) or point `href` at external posts
 - Add an OG image and a favicon

@@ -27,7 +27,7 @@ export default function Projects() {
                 key={project.title}
                 className="grid items-center gap-x-56 gap-y-32 md:grid-cols-2 lg:gap-x-100"
               >
-                {/* Feature image card — 44px radius, no shadow, the
+                {/* Feature image card - 44px radius, no shadow, the
                     same gradient substance as the brand sphere. */}
                 <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-ink-black">
                   <div className="absolute inset-0 flex items-center justify-center">

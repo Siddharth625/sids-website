@@ -12,7 +12,7 @@ export function PageShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * Vertical rhythm is the only section divider in this system — the
+ * Vertical rhythm is the only section divider in this system - the
  * spec forbids visible hairlines between sections, so the 100–160px
  * gap *is* the separator. Scaled down on small screens, where 160px
  * of white reads as a broken page rather than as breathing room.
@@ -29,7 +29,7 @@ export function Section({
   return (
     <section
       id={id}
-      /* Half the target gap, top and bottom — two adjacent sections
+      /* Half the target gap, top and bottom - two adjacent sections
          then add up to the spec's 100–160px, rather than doubling it
          to 320px. */
       className={`mx-auto w-full max-w-[var(--page-max-width)] px-24 py-40 sm:px-40 md:py-56 lg:py-[80px] ${className}`}
@@ -40,7 +40,7 @@ export function Section({
 }
 
 /**
- * Eyebrow / title / intro stack. Left-aligned always — the spec
+ * Eyebrow / title / intro stack. Left-aligned always - the spec
  * centres the hero and nothing else.
  */
 export function SectionHeader({
@@ -68,7 +68,73 @@ export function SectionHeader({
 }
 
 /**
- * Fully-rounded pill with a soft fill — used for the hero's industry
+ * Centred pull quote.
+ *
+ * Centring is a deliberate exception: the design system centres the
+ * hero and left-aligns everything after it. A quote standing in for a
+ * section header is the one other place it earns its keep, because it
+ * is not the reader's own material.
+ */
+export function Quote({ text, author }: { text: string; author: string }) {
+  return (
+    <figure className="mx-auto max-w-[760px] text-center">
+      <blockquote className="text-[22px] leading-heading tracking-heading text-ink-black sm:text-heading">
+        &ldquo;{text}&rdquo;
+      </blockquote>
+      <figcaption className="label mt-24 text-smoke-gray">{author}</figcaption>
+    </figure>
+  );
+}
+
+/**
+ * Impact chip: the metric in green, its label in muted grey.
+ *
+ * Splits on the first space. Every impact string is written
+ * metric-first ("120% revenue lift", "#1 Product of the Day"), so the
+ * leading token is the number and the rest is the noun it belongs to.
+ *
+ * Casing is applied in JS rather than with the `label` utility's CSS
+ * uppercase, because that would flatten deliberate mixed-case words:
+ * "MoUs" became "MOUS". A word carrying a capital anywhere after its
+ * first letter is left exactly as written, which also protects names
+ * like CreateOS or NodeOps if they turn up here later.
+ */
+const preserveCase = (word: string) =>
+  /[A-Z]/.test(word.slice(1)) ? word : word.toUpperCase();
+
+/**
+ * Label-styled text that uppercases in JS instead of CSS, so words
+ * carrying deliberate internal capitals survive: "CreateOS" rather
+ * than "CREATEOS", "MoUs" rather than "MOUS".
+ */
+export function CasedLabel({
+  children,
+  className = "",
+}: {
+  children: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`text-caption leading-caption tracking-caption ${className}`}
+    >
+      {children.split(" ").map(preserveCase).join(" ")}
+    </span>
+  );
+}
+
+export function ImpactPill({ children }: { children: string }) {
+  const [metric, ...rest] = children.split(" ");
+  return (
+    <span className="self-start rounded-button border border-veil-gray px-8 py-4 text-caption leading-caption tracking-caption text-smoke-gray">
+      <span className="text-metric-green">{preserveCase(metric)}</span>
+      {rest.length > 0 && <> {rest.map(preserveCase).join(" ")}</>}
+    </span>
+  );
+}
+
+/**
+ * Fully-rounded pill with a soft fill - used for the hero's industry
  * list and role badge.
  *
  * Distinct from <Tag>, which is a square-ish 8px-radius outline chip
@@ -76,7 +142,7 @@ export function SectionHeader({
  * so it carries a translucent white fill to lift off the gradient.
  *
  * `tone="accent"` fills it with the accent and flips the text to white
- * (10.69:1) — ink-black on the accent measures 1.7:1 and fails.
+ * (10.69:1) - ink-black on the accent measures 1.7:1 and fails.
  */
 export function Pill({
   children,
@@ -87,7 +153,7 @@ export function Pill({
   children: ReactNode;
   tone?: "default" | "accent";
   dot?: boolean;
-  /** Overrides the dot colour — used to code the industry list. */
+  /** Overrides the dot colour - used to code the industry list. */
   dotColor?: string;
 }) {
   const accent = tone === "accent";
@@ -132,7 +198,7 @@ export function PageHeader(props: {
 }
 
 /**
- * Uppercase tracked-out tag chip. Outline only — the accent is
+ * Uppercase tracked-out tag chip. Outline only - the accent is
  * reserved for the CONTACT button.
  *
  * `self-start` matters: inside a flex-column card the chip would

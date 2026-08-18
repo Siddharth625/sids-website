@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import ViewToggle from "@/components/ViewToggle";
 import { nav, profile } from "@/content/site";
 
 /**
@@ -59,7 +60,7 @@ export default function Nav() {
           filled ? "nav-filled bg-klein-blue" : "bg-transparent",
         ].join(" ")}
       >
-        {/* Wordmark — portrait plus name. Set in title case rather than
+        {/* Wordmark - portrait plus name. Set in title case rather than
             the lowercase logotype it used to be: next to a photograph
             of a person, a lowercase mark reads as a brand rather than
             as their name. */}
@@ -95,6 +96,8 @@ export default function Nav() {
             ))}
           </ul>
 
+          <ViewToggle filled={filled} />
+
           <Link
             href="/#contact"
             className={`label rounded-button px-16 py-8 transition-colors duration-300 ${
@@ -106,7 +109,7 @@ export default function Nav() {
             CONTACT
           </Link>
 
-          {/* Mobile disclosure — the pill grows downward rather than
+          {/* Mobile disclosure - the pill grows downward rather than
               opening an overlay, keeping the single-surface feel. */}
           <button
             type="button"

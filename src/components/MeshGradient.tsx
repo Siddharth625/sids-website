@@ -8,7 +8,7 @@
  *
  *   1. the layer is inset beyond the container and blurred, so the
  *      blobs smear into each other instead of showing clean ellipse
- *      edges (the blur is why it's inset — otherwise the blur would
+ *      edges (the blur is why it's inset - otherwise the blur would
  *      feather the container's own edges and show seams)
  *   2. a film-grain overlay from an inline SVG feTurbulence, which
  *      breaks up the banding that large soft gradients produce on
@@ -17,7 +17,7 @@
  *      hero dissolves into the white canvas rather than ending on a
  *      hard line
  *
- * Every hue is drawn from the Klein blue accent family — this stays
+ * Every hue is drawn from the Klein blue accent family - this stays
  * an almost achromatic page with one colour in it.
  */
 
@@ -43,7 +43,7 @@ export default function MeshGradient() {
           filter: "blur(58px)",
           background: [
             /* The one saturated smear. Kept over the open left/centre
-               rather than the upper right — the profile card occupies
+               rather than the upper right - the profile card occupies
                the right half and would hide the only strong colour on
                the page. */
             "radial-gradient(30% 26% at 30% 20%, rgba(0,47,167,0.55) 0%, rgba(0,47,167,0) 64%)",

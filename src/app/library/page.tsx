@@ -31,7 +31,7 @@ export default function Library() {
           intro={sections.library.intro}
         />
 
-        {/* Interests — shown in full; there is no deeper page. */}
+        {/* Interests - shown in full; there is no deeper page. */}
         <Section>
           <SectionHeader
             eyebrow={sections.interests.eyebrow}
@@ -53,7 +53,7 @@ export default function Library() {
           </div>
         </Section>
 
-        {/* Books — preview, full shelf at /books */}
+        {/* Books - preview, full shelf at /books */}
         <Section>
           <SectionHeader
             eyebrow={sections.books.eyebrow}
@@ -90,7 +90,7 @@ export default function Library() {
           </Link>
         </Section>
 
-        {/* Knowledge Bank — preview, all entries at /knowledge */}
+        {/* Knowledge Bank - preview, all entries at /knowledge */}
         <Section>
           <SectionHeader
             eyebrow={sections.knowledge.eyebrow}

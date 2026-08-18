@@ -6,7 +6,7 @@ import "./globals.css";
 
 /**
  * Inter Tight is the spec's named substitute for the custom geometric
- * sans. Only weight 400 is loaded — the design has no bold, and not
+ * sans. Only weight 400 is loaded - the design has no bold, and not
  * shipping the other weights makes that impossible to violate by
  * accident.
  */
@@ -18,10 +18,10 @@ const interTight = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: `${profile.fullName} — ${profile.role}`,
+  title: `${profile.fullName} - ${profile.role}`,
   description: profile.description,
   openGraph: {
-    title: `${profile.fullName} — ${profile.role}`,
+    title: `${profile.fullName} - ${profile.role}`,
     description: profile.description,
     type: "website",
   },
@@ -32,7 +32,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={interTight.variable}>
-      <body>
+      {/* Browser extensions (Grammarly, password managers, translators)
+          inject attributes onto <body> before React hydrates, which
+          trips a hydration mismatch and, in dev, throws up a full-screen
+          error overlay that reads as "the page failed to load". This is
+          the sanctioned escape hatch: it ignores attribute differences
+          on this element only, not on its children. */}
+      <body suppressHydrationWarning>
         {/* Anchor targets sit behind a fixed nav; give keyboard users
             a way past it. */}
         <a

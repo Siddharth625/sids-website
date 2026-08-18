@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { industries } from "@/content/site";
 
 /**
  * Signal from noise.
@@ -10,9 +11,9 @@ import { useEffect, useRef } from "react";
  * the noise resolves into one of the shapes an AI PM actually pulls out
  * of messy data, holds it, dissolves, and reforms as the next:
  *
- *   CLUSTERS  — raw observations separating into distinct themes
- *   CURVE     — a noisy trace converging, plotted against axes
- *   ATTENTION — a sparse matrix: what the model decided mattered
+ *   CLUSTERS  - raw observations separating into distinct themes
+ *   CURVE     - a noisy trace converging, plotted against axes
+ *   ATTENTION - a sparse matrix: what the model decided mattered
  *
  * Every figure is just a target point set, so the morph, the pacing and
  * the pointer gate are shared. Colour carries the same idea as position:
@@ -22,8 +23,8 @@ import { useEffect, useRef } from "react";
 const CAMERA_Z = 110;
 const FOV = 45;
 /* Half-width of the drawing area in world units. Every figure is laid
-   out relative to this, so raising it scales the whole composition —
-   wider curve, larger matrix, further-apart clusters — rather than
+   out relative to this, so raising it scales the whole composition -
+   wider curve, larger matrix, further-apart clusters - rather than
    just zooming in. */
 const EXTENT = 34;
 
@@ -32,7 +33,7 @@ const EXTENT = 34;
  *
  * There is no hold phase. The blend runs continuously and is eased with
  * smootherstep, which is slow near both ends and quick through the
- * middle — so a figure lingers long enough to read without the motion
+ * middle - so a figure lingers long enough to read without the motion
  * ever actually stopping.
  */
 const CYCLE = 13;
@@ -42,13 +43,43 @@ const CYCLE = 13;
 const SWITCH_CYCLE = 5;
 
 /** Per-particle arrival spread. Must match `lead` in the vertex shader
- *  — the CPU-side snapshot reproduces the shader exactly, and any
+ *  - the CPU-side snapshot reproduces the shader exactly, and any
  *  divergence shows up as a jump at the moment of a hover. */
 const LEAD = 0.3;
 /** Seconds for the dust to first gather once started. */
 const REVEAL = 2.4;
 
 /* ── helpers ──────────────────────────────────────────────────────── */
+
+/**
+ * Per-particle colour, written alongside positions.
+ *
+ * Clusters take one colour per cluster from the industry palette; every
+ * other figure is a flat accent. The values are linear-space triples
+ * produced by THREE.Color, not raw sRGB, so they match the uniform path
+ * the renderer already uses. Getting that wrong shows up as washed-out
+ * colour rather than an error.
+ */
+export type Paint = {
+  colors: Float32Array;
+  palette: [number, number, number][];
+  accent: [number, number, number];
+};
+
+const paintOne = (
+  paint: Paint,
+  i: number,
+  rgb: [number, number, number],
+) => {
+  const i3 = i * 3;
+  paint.colors[i3] = rgb[0];
+  paint.colors[i3 + 1] = rgb[1];
+  paint.colors[i3 + 2] = rgb[2];
+};
+
+const paintAll = (paint: Paint, count: number) => {
+  for (let i = 0; i < count; i++) paintOne(paint, i, paint.accent);
+};
 
 /** Box–Muller, for cluster spread that looks sampled rather than drawn. */
 function gaussian() {
@@ -74,11 +105,11 @@ const write = (
 /* ── figures ──────────────────────────────────────────────────────── */
 
 /** Observations separating into themes. */
-function buildClusters(out: Float32Array, count: number) {
+function buildClusters(out: Float32Array, count: number, paint: Paint) {
   const k = 4 + Math.floor(Math.random() * 2); // 4..5 clusters
 
   /* Rejection-sample centres so clusters read as separate, not as one
-     smear — the gaps *are* the figure. Spread is kept well under half
+     smear - the gaps *are* the figure. Spread is kept well under half
      the minimum separation; at wider spreads the tails of neighbouring
      clusters meet and the whole thing reads as a single blob. */
   const centers: { x: number; y: number; s: number; w: number }[] = [];
@@ -95,9 +126,18 @@ function buildClusters(out: Float32Array, count: number) {
     });
   }
 
+  /* One palette colour per cluster, shuffled so the pairing changes
+     between soundings rather than always running down the same order. */
+  const deck = paint.palette.slice();
+  for (let d = deck.length - 1; d > 0; d--) {
+    const j = Math.floor(Math.random() * (d + 1));
+    [deck[d], deck[j]] = [deck[j], deck[d]];
+  }
+
   const totalW = centers.reduce((a, c) => a + c.w, 0);
   let i = 0;
   centers.forEach((c, idx) => {
+    const colour = deck[idx % deck.length] ?? paint.accent;
     const share =
       idx === centers.length - 1
         ? count - i
@@ -110,13 +150,18 @@ function buildClusters(out: Float32Array, count: number) {
         c.y + gaussian() * c.s,
         gaussian() * 1.6,
       );
+      paintOne(paint, i, colour);
     }
   });
-  for (; i < count; i++) write(out, i, 0, 0, 0);
+  for (; i < count; i++) {
+    write(out, i, 0, 0, 0);
+    paintOne(paint, i, paint.accent);
+  }
 }
 
-/** A noisy trace converging — evals, training, any metric settling. */
-function buildCurve(out: Float32Array, count: number) {
+/** A noisy trace converging - evals, training, any metric settling. */
+function buildCurve(out: Float32Array, count: number, paint: Paint) {
+  paintAll(paint, count);
   const x0 = -EXTENT;
   const x1 = EXTENT;
   const yBase = -EXTENT + 6;
@@ -146,8 +191,9 @@ function buildCurve(out: Float32Array, count: number) {
   }
 }
 
-/** A sparse attention matrix — what the model decided mattered. */
-function buildAttention(out: Float32Array, count: number) {
+/** A sparse attention matrix - what the model decided mattered. */
+function buildAttention(out: Float32Array, count: number, paint: Paint) {
+  paintAll(paint, count);
   const N = 7 + Math.floor(Math.random() * 3); // 7..9 tokens
   const cell = (EXTENT * 2) / N;
   const pad = cell * 0.16;
@@ -215,14 +261,22 @@ const AMBIENT = [buildClusters, buildCurve, buildAttention];
  * Picks an ambient figure, never the same one twice in a row.
  *
  * Draws uniformly from the figures that aren't `prev`. Picking at
- * random and nudging on collision looks equivalent but isn't — it
+ * random and nudging on collision looks equivalent but isn't - it
  * hands (prev + 1) two thirds of the draws and starves the third
  * figure.
  */
-function buildAmbientFigure(out: Float32Array, count: number, prev: number) {
-  const choices = AMBIENT.map((_, i) => i).filter((i) => i !== prev);
+function buildAmbientFigure(
+  out: Float32Array,
+  count: number,
+  prev: number,
+  paint: Paint,
+) {
+  const others = AMBIENT.map((_, i) => i).filter((i) => i !== prev);
+  // With a single figure in the list `others` is empty; fall back to
+  // the whole set rather than indexing off the end.
+  const choices = others.length > 0 ? others : AMBIENT.map((_, i) => i);
   const idx = choices[Math.floor(Math.random() * choices.length)];
-  AMBIENT[idx](out, count);
+  AMBIENT[idx](out, count, paint);
   return idx;
 }
 
@@ -234,8 +288,8 @@ function buildAmbientFigure(out: Float32Array, count: number, prev: number) {
  *
  * Icons and letterforms have no closed-form description to sample the
  * way the clusters and curve do, so they are drawn once with the 2D
- * context and read back as a point set. Everything downstream — the
- * morph, the scatter, the colour ramp — is unchanged.
+ * context and read back as a point set. Everything downstream - the
+ * morph, the scatter, the colour ramp - is unchanged.
  */
 const CANVAS_SIZE = 360;
 
@@ -243,7 +297,9 @@ function sampleDrawing(
   out: Float32Array,
   count: number,
   draw: (ctx: CanvasRenderingContext2D, size: number) => void,
+  paint: Paint,
 ) {
+  paintAll(paint, count);
   const S = CANVAS_SIZE;
   const canvas = document.createElement("canvas");
   canvas.width = S;
@@ -251,7 +307,7 @@ function sampleDrawing(
 
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) {
-    buildClusters(out, count); // no 2D context — fall back to a shape
+    buildClusters(out, count, paint); // no 2D context - fall back to a shape
     return;
   }
 
@@ -276,7 +332,7 @@ function sampleDrawing(
   }
 
   if (xs.length === 0) {
-    buildClusters(out, count);
+    buildClusters(out, count, paint);
     return;
   }
 
@@ -386,9 +442,17 @@ const CONCEPTS: Concept[] = [
   },
 ];
 
-function buildConcept(out: Float32Array, count: number, index: number) {
+function buildConcept(
+  out: Float32Array,
+  count: number,
+  index: number,
+  paint: Paint,
+) {
   const concept = CONCEPTS[index % CONCEPTS.length];
-  sampleDrawing(out, count, (ctx, S) => {
+  sampleDrawing(
+    out,
+    count,
+    (ctx, S) => {
     concept.icon(ctx, S);
 
     /* Uppercase and tracked out, matching the label style used
@@ -414,8 +478,10 @@ function buildConcept(out: Float32Array, count: number, index: number) {
       ctx.font = `500 ${fs}px ${face}`;
     }
 
-    ctx.fillText(text, S / 2, S * 0.74);
-  });
+      ctx.fillText(text, S / 2, S * 0.74);
+    },
+    paint,
+  );
 }
 
 /* ── shaders ──────────────────────────────────────────────────────── */
@@ -424,6 +490,8 @@ const VERTEX = /* glsl */ `
   attribute vec3 aNoise;
   attribute vec3 aFigA;
   attribute vec3 aFigB;
+  attribute vec3 aColA;
+  attribute vec3 aColB;
   attribute float aRand;
 
   uniform float uBlend;
@@ -433,8 +501,9 @@ const VERTEX = /* glsl */ `
   uniform float uSize;
 
   varying float vReveal;
+  varying vec3 vColor;
 
-  // Slower at both ends than smoothstep, with no flat region — the
+  // Slower at both ends than smoothstep, with no flat region - the
   // figure dwells long enough to read without the motion halting.
   float smootherstep(float x) {
     x = clamp(x, 0.0, 1.0);
@@ -448,11 +517,12 @@ const VERTEX = /* glsl */ `
     noisePos.z += sin(uTime * 0.15 + aRand * 3.141) * 1.5;
 
     // Stagger per particle so figures assemble rather than snap.
-    // Mirrored by LEAD on the CPU side — keep the two in step.
+    // Mirrored by LEAD on the CPU side - keep the two in step.
     float lead = aRand * 0.3;
     float b = smootherstep((uBlend - lead) / (1.0 - lead));
 
     vec3 figure = mix(aFigA, aFigB, b);
+    vColor = mix(aColA, aColB, b);
 
     /* Resolved figures breathe. Without this the particles are exactly
        static whenever the blend is near an endpoint, which reads as the
@@ -487,9 +557,9 @@ const FRAGMENT = /* glsl */ `
   precision mediump float;
 
   uniform vec3 uNoiseColor;
-  uniform vec3 uSignalColor;
 
   varying float vReveal;
+  varying vec3 vColor;
 
   void main() {
     vec2 c = gl_PointCoord - vec2(0.5);
@@ -500,7 +570,7 @@ const FRAGMENT = /* glsl */ `
 
     // Hold the ink back until the figure has nearly formed, or the
     // halfway point reads as a dense cloud of in-flight particles.
-    vec3 col = mix(uNoiseColor, uSignalColor, pow(vReveal, 1.4));
+    vec3 col = mix(uNoiseColor, vColor, pow(vReveal, 1.4));
     float alpha = mask * mix(0.18, 0.92, pow(vReveal, 1.7));
 
     gl_FragColor = vec4(col, alpha);
@@ -528,7 +598,7 @@ export default function SignalField() {
       try {
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
       } catch {
-        return; // no WebGL — the hero renders without the field
+        return; // no WebGL - the hero renders without the field
       }
 
       const COUNT = window.innerWidth < 768 ? 5000 : 9000;
@@ -550,6 +620,8 @@ export default function SignalField() {
       const noise = new Float32Array(COUNT * 3);
       const figA = new Float32Array(COUNT * 3);
       const figB = new Float32Array(COUNT * 3);
+      const colA = new Float32Array(COUNT * 3);
+      const colB = new Float32Array(COUNT * 3);
       const rand = new Float32Array(COUNT);
 
       for (let i = 0; i < COUNT; i++) {
@@ -560,19 +632,36 @@ export default function SignalField() {
         rand[i] = Math.random();
       }
 
-      let lastAmbient = buildAmbientFigure(figA, COUNT, -1);
-      lastAmbient = buildAmbientFigure(figB, COUNT, lastAmbient);
+      /* Linear-space triples, converted by THREE.Color so they match
+         how the renderer treats the uniform colours. */
+      const toLinear = (hex: string): [number, number, number] => {
+        const c = new THREE.Color(hex);
+        return [c.r, c.g, c.b];
+      };
+      const palette = industries.items.map((item) => toLinear(item.color));
+      const accent = toLinear("#002fa7");
+
+      const paintA: Paint = { colors: colA, palette, accent };
+      const paintB: Paint = { colors: colB, palette, accent };
+
+      let lastAmbient = buildAmbientFigure(figA, COUNT, -1, paintA);
+      lastAmbient = buildAmbientFigure(figB, COUNT, lastAmbient, paintB);
 
       const attrA = new THREE.BufferAttribute(figA, 3);
       const attrB = new THREE.BufferAttribute(figB, 3);
-      attrA.setUsage(THREE.DynamicDrawUsage);
-      attrB.setUsage(THREE.DynamicDrawUsage);
+      const attrColA = new THREE.BufferAttribute(colA, 3);
+      const attrColB = new THREE.BufferAttribute(colB, 3);
+      [attrA, attrB, attrColA, attrColB].forEach((a) =>
+        a.setUsage(THREE.DynamicDrawUsage),
+      );
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.BufferAttribute(noise, 3));
       geometry.setAttribute("aNoise", new THREE.BufferAttribute(noise, 3));
       geometry.setAttribute("aFigA", attrA);
       geometry.setAttribute("aFigB", attrB);
+      geometry.setAttribute("aColA", attrColA);
+      geometry.setAttribute("aColB", attrColB);
       geometry.setAttribute("aRand", new THREE.BufferAttribute(rand, 1));
       geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 90);
 
@@ -583,7 +672,6 @@ export default function SignalField() {
         uTime: { value: 0 },
         uSize: { value: 2.3 },
         uNoiseColor: { value: new THREE.Color("#a1a1a1") },
-        uSignalColor: { value: new THREE.Color("#002fa7") },
       };
 
       const material = new THREE.ShaderMaterial({
@@ -628,13 +716,16 @@ export default function SignalField() {
       let hoveringField = false;
       let conceptIndex = -1;
 
-      const buildNext = (out: Float32Array) => {
+      /* Always writes the B buffers: B is the figure being morphed
+         towards, and A only ever receives a copy of B or a snapshot. */
+      const buildNextIntoB = () => {
         if (mode === "concept") {
           conceptIndex = (conceptIndex + 1) % CONCEPTS.length;
-          buildConcept(out, COUNT, conceptIndex);
+          buildConcept(figB, COUNT, conceptIndex, paintB);
         } else {
-          lastAmbient = buildAmbientFigure(out, COUNT, lastAmbient);
+          lastAmbient = buildAmbientFigure(figB, COUNT, lastAmbient, paintB);
         }
+        attrColB.needsUpdate = true;
       };
 
       const smootherstep = (x: number) => {
@@ -648,7 +739,7 @@ export default function SignalField() {
        *
        * A uniform CPU-side mix is not good enough here. The shader
        * staggers arrival per particle and, mid-transition, has most of
-       * them out in the noise cloud — so a naive snapshot teleports the
+       * them out in the noise cloud - so a naive snapshot teleports the
        * field to a fully-formed figure the instant you hover.
        *
        * The figure drift is subtracted back out at the end: at u = 0 the
@@ -684,10 +775,17 @@ export default function SignalField() {
           out[i3] = nx + (fx - nx) * rev - dfx;
           out[i3 + 1] = ny + (fy - ny) * rev - dfy;
           out[i3 + 2] = nz + (fz - nz) * rev - dfz;
+
+          // Colour is blended by the same factor, or a hover mid-morph
+          // would snap the palette even though the shape does not.
+          colA[i3] = colA[i3] + (colB[i3] - colA[i3]) * b;
+          colA[i3 + 1] = colA[i3 + 1] + (colB[i3 + 1] - colA[i3 + 1]) * b;
+          colA[i3 + 2] = colA[i3 + 2] + (colB[i3 + 2] - colA[i3 + 2]) * b;
         }
+        attrColA.needsUpdate = true;
       };
 
-      /* Switching sets shouldn't wait out the rest of the cycle — a
+      /* Switching sets shouldn't wait out the rest of the cycle - a
          hover has to answer promptly. Freeze exactly what is on screen
          into A, put the new set's first figure into B, and restart on a
          shorter cycle so the concept lands in a couple of seconds. */
@@ -697,7 +795,7 @@ export default function SignalField() {
 
         const u = Math.min(1, (now - cycleOrigin) / 1000 / cycleDuration);
         snapshotInto(figA, u, (now - startedAt) / 1000);
-        buildNext(figB);
+        buildNextIntoB();
         attrA.needsUpdate = true;
         attrB.needsUpdate = true;
 
@@ -710,7 +808,7 @@ export default function SignalField() {
          no rush and no dropped frame. */
       const scheduleNextFigure = () => {
         const build = () => {
-          buildNext(figB);
+          buildNextIntoB();
           attrB.needsUpdate = true;
         };
         if (typeof requestIdleCallback === "function") {
@@ -734,7 +832,7 @@ export default function SignalField() {
         if (!raf) raf = requestAnimationFrame(frame);
       };
 
-      /* Touch devices have no pointer movement to wait for — gating on
+      /* Touch devices have no pointer movement to wait for - gating on
          it there would leave a permanently frozen field. On a coarse
          pointer the field starts as soon as it scrolls into view. */
       const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
@@ -753,7 +851,7 @@ export default function SignalField() {
         const now = performance.now();
 
         /* Hover is tracked against the canvas itself, while arming
-           watches the whole first fold — the two zones are different on
+           watches the whole first fold - the two zones are different on
            purpose, so the field is alive before you reach it. */
         const overField = within(e, mount);
         if (overField !== hoveringField) {
@@ -781,10 +879,10 @@ export default function SignalField() {
         start(now);
         if (mode === "concept") {
           // Same seamless hand-off as a mode switch, just without
-          // changing set — freeze what's on screen, then morph on.
+          // changing set - freeze what's on screen, then morph on.
           const u = Math.min(1, (now - cycleOrigin) / 1000 / cycleDuration);
           snapshotInto(figA, u, (now - startedAt) / 1000);
-          buildNext(figB);
+          buildNextIntoB();
           attrA.needsUpdate = true;
           attrB.needsUpdate = true;
           cycleOrigin = now;
@@ -831,7 +929,7 @@ export default function SignalField() {
         uniforms.uReveal.value = Math.min(1, t / REVEAL);
 
         /* One continuous cycle, no phases. On wrap the figure just
-           shown becomes A and a fresh one is built into B — the blend
+           shown becomes A and a fresh one is built into B - the blend
            is 0 at that instant, so mix(A, B, 0) is exactly what was
            already on screen and nothing jumps.
 
@@ -843,7 +941,9 @@ export default function SignalField() {
 
         if (raw >= 1) {
           figA.set(figB);
+          colA.set(colB);
           attrA.needsUpdate = true;
+          attrColA.needsUpdate = true;
           cycleOrigin = now;
           cycleDuration = CYCLE; // the shortened switch cycle is one-shot
           u = 0;
@@ -856,7 +956,7 @@ export default function SignalField() {
         /* Scatter through noise mid-transition, then re-gather.
            The power is high on purpose. Position is a straight mix
            between the noise and figure buffers, and the noise cloud is
-           wider than the figures — so even 10% of noise left in leaves
+           wider than the figures - so even 10% of noise left in leaves
            a jitter larger than a cluster's own spread and the figure
            stops reading. Anything short of a narrow, deep spike keeps
            the field permanently blurred. */
@@ -870,7 +970,7 @@ export default function SignalField() {
 
         current.rx += (target.rx - current.rx) * 0.03;
         current.ry += (target.ry - current.ry) * 0.03;
-        // Kept shallow — these figures are charts, and a steep tilt
+        // Kept shallow - these figures are charts, and a steep tilt
         // makes them unreadable.
         group.rotation.x = current.rx - 0.05 + Math.sin(t * 0.05) * 0.03;
         group.rotation.y = current.ry + Math.sin(t * 0.08) * 0.09;
@@ -904,7 +1004,7 @@ export default function SignalField() {
       ref={mountRef}
       aria-hidden="true"
       /* pointer-events stay off so the canvas never intercepts text
-         selection — the start gesture is read from window coordinates
+         selection - the start gesture is read from window coordinates
          against the hero section's rect instead. */
       className="pointer-events-none relative aspect-square w-full max-w-[680px]"
     />

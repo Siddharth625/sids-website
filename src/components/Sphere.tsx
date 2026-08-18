@@ -1,5 +1,5 @@
 /**
- * The gradient sphere — the site's only brand illustration.
+ * The gradient sphere - the site's only brand illustration.
  *
  * The spec describes this as a 3D-rendered image asset, and explicitly
  * forbids using the teal-to-violet gradient as a section background.
@@ -16,7 +16,7 @@
 
 /* Light position per variant. Repeating one sphere across every
    feature card reads as a placeholder, so each card gets its own
-   lighting angle — same substance, different render. */
+   lighting angle - same substance, different render. */
 const LIGHTING = [
   { x: 50, y: 22 },
   { x: 32, y: 34 },
@@ -36,7 +36,7 @@ export default function Sphere({
   return (
     <div
       aria-hidden="true"
-      /* No width here on purpose — the caller owns sizing. A `w-full`
+      /* No width here on purpose - the caller owns sizing. A `w-full`
          default would collide with the caller's own width utility and
          win or lose depending on CSS order. */
       className={`pointer-events-none aspect-square rounded-full ${className}`}

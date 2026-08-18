@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SocialIcon from "@/components/SocialIcon";
 import { profile, sections, socials } from "@/content/site";
 
 export default function Footer() {
@@ -13,12 +14,12 @@ export default function Footer() {
         {sections.contact.title}
       </h2>
 
-      <p className="mt-16 max-w-[520px] text-body leading-body tracking-body text-mist-gray">
+      <p className="mt-16 max-w-[760px] text-body leading-body tracking-body text-mist-gray">
         {sections.contact.intro}
       </p>
 
-      {/* The email is the primary action, set at subheading size so it
-          carries weight without ever using a bold weight. */}
+      {/* The address in full: the EMAIL icon below opens a mail client,
+          but plenty of people want to copy it rather than launch one. */}
       <a
         href={`mailto:${profile.email}`}
         className="link-underline mt-40 inline-block text-subheading leading-subheading tracking-subheading text-ink-black"
@@ -33,8 +34,9 @@ export default function Footer() {
               href={s.href}
               target={s.href.startsWith("http") ? "_blank" : undefined}
               rel={s.href.startsWith("http") ? "noreferrer noopener" : undefined}
-              className="label text-ink-black transition-colors duration-200 hover:text-smoke-gray"
+              className="label inline-flex items-center gap-8 text-ink-black transition-colors duration-200 hover:text-smoke-gray"
             >
+              <SocialIcon name={s.icon} />
               {s.label}
             </Link>
           </li>
@@ -42,7 +44,7 @@ export default function Footer() {
       </ul>
 
       <p className="label mt-100 text-smoke-gray">
-        © {new Date().getFullYear()} {profile.fullName.toUpperCase()} — {profile.location}
+        © {new Date().getFullYear()} {profile.fullName.toUpperCase()}
       </p>
     </footer>
   );
