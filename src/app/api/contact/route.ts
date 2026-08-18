@@ -75,7 +75,9 @@ export async function POST(request: Request) {
   if (!key) {
     console.error("[contact] RESEND_API_KEY missing - lead not sent:", lead);
     return Response.json(
-      { error: "Contact isn't wired up yet. Please email directly." },
+      {
+        error: `Couldn't send that from here. Please email ${profile.email} directly.`,
+      },
       { status: 503 },
     );
   }

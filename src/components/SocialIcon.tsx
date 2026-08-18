@@ -13,13 +13,16 @@
 export default function SocialIcon({
   name,
   className = "",
+  size = 18,
 }: {
   name: string;
   className?: string;
+  /** Larger where the glyph carries the link on its own, with no label. */
+  size?: number;
 }) {
   const common = {
-    width: 18,
-    height: 18,
+    width: size,
+    height: size,
     viewBox: "0 0 24 24",
     "aria-hidden": true as const,
     className: `shrink-0 ${className}`,

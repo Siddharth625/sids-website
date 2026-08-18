@@ -98,8 +98,14 @@ function fail(message: string, status: number) {
 export async function POST(request: Request) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) {
+    /* The variable name belongs in the server log, not in a stranger's
+       chat window - to a visitor it reads as the site asking *them*
+       for an API key. */
+    console.error(
+      "[ask] OPENROUTER_API_KEY is not set in this environment. On a host, set it in the project's environment variables; .env.local is gitignored and never deploys.",
+    );
     return fail(
-      "The assistant isn't configured yet - OPENROUTER_API_KEY is missing.",
+      "Arthur is offline at the moment. You can reach Sid through the contact link on this page.",
       503,
     );
   }

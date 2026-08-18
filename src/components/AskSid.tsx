@@ -262,7 +262,7 @@ export default function AskSid() {
                   purpose - a 44px radius on a panel this size reads as
                   a pill, and the message bubbles inside it need a
                   radius of their own to sit against. */}
-              <div className="flex min-h-0 flex-col rounded-2xl border border-veil-gray bg-paper-white/80 backdrop-blur-sm max-lg:min-h-[420px] lg:h-[min(560px,70svh)]">
+              <div className="flex min-h-0 flex-col rounded-3xl border border-veil-gray bg-paper-white/80 backdrop-blur-sm max-lg:min-h-[420px] lg:h-[min(560px,70svh)]">
                 <h2 className="sr-only">{sections.ask.title}</h2>
 
                 {/* The toggle earns its place once the form takes the
@@ -317,7 +317,7 @@ export default function AskSid() {
                             <button
                               type="button"
                               onClick={() => ask(opener)}
-                              className="rounded-lg border border-veil-gray px-16 py-8 text-left text-caption leading-caption tracking-caption text-ink-black transition-colors hover:border-ink-black"
+                              className="rounded-xl border border-veil-gray px-16 py-8 text-left text-caption leading-caption tracking-caption text-ink-black transition-colors hover:border-ink-black"
                             >
                               {opener}
                             </button>
@@ -338,7 +338,7 @@ export default function AskSid() {
                     }}
                     className="shrink-0 border-t border-veil-gray p-16 sm:px-24 sm:py-16"
                   >
-                    <div className="flex items-end gap-12 rounded-xl border border-veil-gray bg-paper-white px-16 py-12">
+                    <div className="flex items-end gap-12 rounded-2xl border border-veil-gray bg-paper-white px-16 py-12">
                       <label htmlFor="ask-input" className="sr-only">
                         Ask a question about {profile.fullName}
                       </label>
@@ -477,7 +477,7 @@ function ContextCard({
   ];
 
   return (
-    <aside className="flex flex-col gap-24 rounded-2xl border border-veil-gray bg-paper-white/70 p-24 backdrop-blur-sm max-lg:hidden">
+    <aside className="flex flex-col gap-24 rounded-3xl border border-veil-gray bg-paper-white/70 p-24 backdrop-blur-sm max-lg:hidden">
       <div className="flex items-center gap-12">
         <Image
           src={assistant.avatar}
@@ -575,17 +575,20 @@ function LeadForm({
   sending: boolean;
   onSubmit: (event: React.FormEvent) => void;
 }) {
+  /* Sized to fit the panel without scrolling: at the previous
+     padding and gaps the SEND button sat below the fold, so the form
+     read as unfinished at exactly the moment it asks for trust. */
   const field =
-    "mt-8 w-full rounded-lg border border-veil-gray bg-paper-white px-16 py-12 text-body leading-body tracking-body text-ink-black outline-none placeholder:text-smoke-gray focus:border-ink-black";
+    "mt-4 w-full rounded-xl border border-veil-gray bg-paper-white px-16 py-8 text-body leading-body tracking-body text-ink-black outline-none placeholder:text-smoke-gray focus:border-ink-black";
 
   return (
     <form onSubmit={onSubmit}>
-      <p className="text-body leading-body tracking-body text-ink-black">
-        That&rsquo;s the {FREE_QUESTIONS} questions. Leave your details and
-        Sid will pick it up from here.
+      <p className="text-caption leading-caption tracking-caption text-ink-black">
+        That&rsquo;s the {FREE_QUESTIONS} questions. Leave your details and Sid
+        will pick it up from here.
       </p>
 
-      <div className="mt-24 flex flex-col gap-16">
+      <div className="mt-16 flex flex-col gap-12">
         <div>
           <label htmlFor="lead-name" className="label text-smoke-gray">
             NAME
@@ -631,7 +634,7 @@ function LeadForm({
           </label>
           <textarea
             id="lead-reason"
-            rows={3}
+            rows={2}
             value={lead.reason}
             onChange={(e) => setLead({ ...lead, reason: e.target.value })}
             className={`${field} resize-none`}
@@ -648,7 +651,7 @@ function LeadForm({
       <button
         type="submit"
         disabled={sending}
-        className="label mt-24 rounded-lg bg-ink-black px-16 py-8 text-paper-white transition-opacity disabled:opacity-30"
+        className="label mt-16 rounded-xl bg-ink-black px-16 py-8 text-paper-white transition-opacity disabled:opacity-30"
       >
         {sending ? "SENDING..." : "SEND"}
       </button>

@@ -68,9 +68,23 @@ error message or a header, so nothing the browser can see names it. Provider
 errors are logged server-side and returned to the visitor as a generic message
 for the same reason.
 
-**It needs a key.** Copy `.env.example` to `.env.local` and paste in an
-`OPENROUTER_API_KEY`. Without one the endpoint returns a 503 and the box says it
-isn't configured yet - nothing else on the site is affected.
+**It needs a key, and the key is one key for everybody.** It lives on the
+server, not in the browser: every visitor and every session shares it, and no
+one is ever asked for one. Copy `.env.example` to `.env.local` and paste in an
+`OPENROUTER_API_KEY`. Without one the endpoint returns a 503, the box says
+Arthur is offline and points at the contact link, and nothing else on the site
+is affected.
+
+**`.env.local` is gitignored, so it never deploys.** That is the one thing to
+remember: it works on your machine and then the live site has no key, because
+the file stayed behind. Set `OPENROUTER_API_KEY` (and `RESEND_API_KEY`) in your
+host's own environment variables - on Vercel that is Project → Settings →
+Environment Variables, then redeploy. Never commit the key instead: this repo
+has a public GitHub remote, and a key in a commit is a key in everyone's hands
+and in the history even after you delete it.
+
+If the live site says Arthur is offline, check the host's env vars first - the
+server log records exactly that diagnosis.
 
 **Anyone who opens the page can spend against that key.** Set a credit limit on
 it in the OpenRouter dashboard before deploying. The route caps question length,
@@ -85,6 +99,51 @@ plain text rather than into a separate `reasoning` field, so without this the
 visitor reads "Here's a thinking process: 1. Analyze User Input..." and the
 answer itself never arrives before `max_tokens` cuts it off. `reasoning:
 { exclude: true }` only drops the separate field and does **not** fix it.
+
+### Arthur
+
+The assistant has a name and a face (`assistant` in `site.ts`, art in
+`public/arthur.png`). That is not decoration: it is what makes the third-person
+voice read as deliberate rather than as a bot that cannot say "I". He is Sid's
+agent, and the system prompt tells him to say so if asked.
+
+### The rules he runs under
+
+Five, in the route's system prompt, in priority order: answer only from the
+profile document; never state anything it does not say; decline anything outside
+it and point at the contact link; always third person; plain prose only. The
+second one is doing the most work - a free model will happily promote "Product
+Manager" to "co-founder" if you let it.
+
+**Suggested next pages are matched in the browser, not asked of the model.**
+`SECTION_CTAS` in `src/lib/ask.ts` maps a regex to each route. A model told to
+emit links invents routes that don't exist; a lookup table can only produce the
+four that do.
+
+### Three questions, then a form
+
+The allowance lives in `sessionStorage` (`FREE_QUESTIONS` in `src/lib/ask.ts`),
+and so does the transcript - hence the HISTORY toggle, which is what keeps the
+conversation reachable once the form takes the panel over. Both are per tab and
+go when it closes.
+
+**It is a lead gate, not a security control.** Anyone who wants a fourth
+question can clear their storage and have one. Spend is protected by the per-IP
+limit in the chat route; this exists to turn an interested visitor into an
+introduction.
+
+The form posts to `/api/contact`, which emails `profile.email` through Resend.
+**Without `RESEND_API_KEY` it returns a 503 and writes the lead to the server log
+at error level** rather than showing a thank-you for a message nobody received.
+
+### The context card
+
+Shows what the assistant was given, what the last answer cost, and how much of
+the session budget is in play. That budget (`CONTEXT_BUDGET`) is deliberately
+*not* the model's own window: the window is a million tokens and a conversation
+about a CV uses about four thousand, so a bar drawn against it sits at zero
+forever. The route trims the oldest turns against the same number, so the bar and
+the behaviour agree.
 
 ### Scroll behaviour
 
