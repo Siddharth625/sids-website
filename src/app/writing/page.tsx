@@ -13,7 +13,10 @@ export default function Writing() {
   return (
     <div>
       <PageShell>
-        <Section>
+        {/* Tighter top padding than the default section rhythm: the
+            quote is the first thing on the page, and at the standard
+            py-40/56/80 it sat low enough to waste the fold. */}
+        <Section className="pt-16 md:pt-24 lg:pt-32">
           {/* The visible header is a quote, so keep a real heading for
               screen readers and the document outline - same as /work
               and /books. */}

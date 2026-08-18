@@ -790,6 +790,7 @@ export const posts: Post[] = [
     blurb:
       "A walkthrough of the journey a prompt takes between hitting Enter and the first token arriving back on screen.",
     href: "https://x.com/Sid_625/status/2054542233018507745",
+    readingTime: "12 MIN",
     source: "X",
     thumbnail: "/writing/press-enter.jpg",
   },

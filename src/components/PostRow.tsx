@@ -49,7 +49,11 @@ export default function PostRow({
           )}
         </div>
 
-        <div className="min-w-0">
+        {/* flex-1 matters: without it this column shrink-to-fits its
+            content, so a post with a short blurb ends up narrower than
+            its neighbours and its right-aligned date stops lining up
+            with theirs. */}
+        <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-x-24 gap-y-8 md:flex-row md:items-baseline md:justify-between">
             <Heading className="text-subheading leading-subheading tracking-subheading text-ink-black transition-colors duration-200 group-hover:text-smoke-gray">
               {post.title}

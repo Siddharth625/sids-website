@@ -271,12 +271,6 @@ export default function RoleShowcase({
             </p>
           </div>
 
-          {role.products && role.products.length > 0 && (
-            <p className="label shrink-0 text-smoke-gray max-sm:hidden">
-              SHIPPED ({role.products.length})
-            </p>
-          )}
-
           {/* Rotates into a cross when open. */}
           <span
             aria-hidden="true"
