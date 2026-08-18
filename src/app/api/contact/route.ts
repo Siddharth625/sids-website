@@ -1,4 +1,5 @@
 import { profile } from "@/content/site";
+import { readSecret } from "@/lib/secret";
 
 /**
  * Lead capture behind the assistant's question limit.
@@ -27,7 +28,7 @@ const ENDPOINT = "https://api.resend.com/emails";
    Until a domain is verified, `onboarding@resend.dev` is the sandbox
    sender every Resend account gets; it can only deliver to that
    account's own address, which is exactly where this is going. */
-const FROM = process.env.CONTACT_FROM ?? "onboarding@resend.dev";
+const FROM = readSecret("CONTACT_FROM") || "onboarding@resend.dev";
 
 const LIMITS = { name: 120, email: 200, phone: 40, reason: 2_000 };
 
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
 
   const lead = { name, email, phone, reason, at: new Date().toISOString() };
 
-  const key = process.env.RESEND_API_KEY;
+  const key = readSecret("RESEND_API_KEY");
   if (!key) {
     console.error("[contact] RESEND_API_KEY missing - lead not sent:", lead);
     return Response.json(
@@ -147,7 +148,9 @@ ${reasonBlock}
 
     if (!response.ok) {
       console.error(
-        "[contact] send failed",
+        response.status === 401 || response.status === 403
+          ? "[contact] Resend rejected the API key. Check for quotes or whitespace around RESEND_API_KEY in the host's environment variables, and that the key belongs to the Resend account whose address is the recipient."
+          : "[contact] send failed",
         response.status,
         await response.text().catch(() => ""),
         lead,

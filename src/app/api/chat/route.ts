@@ -1,4 +1,5 @@
 import { buildAgentMarkdown } from "@/lib/agent-markdown";
+import { readSecret } from "@/lib/secret";
 import { assistant, profile } from "@/content/site";
 import { type AskEvent, CONTEXT_BUDGET } from "@/lib/ask";
 
@@ -110,7 +111,7 @@ function fail(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
-  const key = process.env.OPENROUTER_API_KEY;
+  const key = readSecret("OPENROUTER_API_KEY");
   if (!key) {
     /* The variable name belongs in the server log, not in a stranger's
        chat window - to a visitor it reads as the site asking *them*
