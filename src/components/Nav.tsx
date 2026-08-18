@@ -28,6 +28,21 @@ import { nav, profile } from "@/content/site";
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [portrait, setPortrait] = useState(false);
+
+  useEffect(() => {
+    if (!portrait) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPortrait(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [portrait]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -64,15 +79,28 @@ export default function Nav() {
             the lowercase logotype it used to be: next to a photograph
             of a person, a lowercase mark reads as a brand rather than
             as their name. */}
-        <Link href="/" className="flex items-center gap-12">
-          <Image
-            src={profile.avatar}
-            alt=""
-            width={320}
-            height={320}
-            priority
-            className="size-32 shrink-0 rounded-full object-cover"
-          />
+        <div className="flex items-center gap-12">
+          {/* The portrait opens itself; the name goes home. They were
+              one link before, and a single target cannot do both -
+              clicking a photograph expecting it to enlarge and landing
+              on the homepage is the more annoying of the two failures. */}
+          <button
+            type="button"
+            onClick={() => setPortrait(true)}
+            aria-label={`View ${profile.fullName}'s portrait`}
+            className="shrink-0 rounded-full"
+          >
+            <Image
+              src={profile.avatar}
+              alt=""
+              width={320}
+              height={320}
+              priority
+              className="size-32 rounded-full object-cover"
+            />
+          </button>
+
+          <Link href="/" className="flex items-center">
           {/* Two spans rather than one, because the swap is a
               breakpoint decision and only one is ever in the
               accessibility tree - `hidden` is display:none, so screen
@@ -94,7 +122,8 @@ export default function Nav() {
           >
             {profile.fullName}
           </span>
-        </Link>
+          </Link>
+        </div>
 
         <div className="ml-auto flex items-center gap-x-24">
           <ul className="hidden items-center gap-x-24 lg:flex">
@@ -193,6 +222,33 @@ export default function Nav() {
           </ul>
         )}
       </nav>
+
+      {/* The portrait, enlarged. A dimmed backdrop rather than the
+          paper-white used by the chat and product overlays: this is a
+          photograph, and a white ground next to it reads as part of
+          the image. Clicking anywhere closes it - there is nothing
+          here to interact with, so a dedicated close button would be
+          the only thing to aim at. */}
+      {portrait && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${profile.fullName}, portrait`}
+          onClick={() => setPortrait(false)}
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-ink-black/70 p-24 backdrop-blur-sm"
+        >
+          <Image
+            src={profile.avatar}
+            alt={profile.fullName}
+            width={320}
+            height={320}
+            /* The source is 320px square, so it is shown at its own
+               size rather than blown up past it - an upscaled face is
+               worse than a smaller sharp one. */
+            className="size-[min(320px,80vw)] rounded-full border-4 border-paper-white object-cover"
+          />
+        </div>
+      )}
     </header>
   );
 }

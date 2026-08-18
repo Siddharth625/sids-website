@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import AskChat from "@/components/AskChat";
 import { assistant } from "@/content/site";
+import { capture, EVENTS } from "@/lib/analytics";
 
 /**
  * Arthur, as a sticky launcher in the bottom-left corner.
@@ -101,7 +102,12 @@ export default function AskLauncher() {
 
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          /* Only the opening half is worth an event; closing a panel
+             says nothing about interest. */
+          if (!open) capture(EVENTS.agentOpened, { path: pathname });
+          setOpen((v) => !v);
+        }}
         aria-expanded={open}
         aria-label={open ? `Close ${assistant.name}` : `Ask ${assistant.name}`}
         /* A circle holding Arthur's face and nothing else. The name

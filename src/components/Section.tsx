@@ -48,14 +48,20 @@ export function SectionHeader({
   title,
   intro,
 }: {
-  eyebrow: string;
+  /* Optional: a section whose title already names it does not need the
+     label above repeating it. */
+  eyebrow?: string;
   title: string;
   intro?: string;
 }) {
   return (
     <header className="mb-56 max-w-[640px]">
-      <p className="label text-smoke-gray">{eyebrow}</p>
-      <h2 className="mt-24 text-[24px] leading-heading tracking-heading text-ink-black sm:text-heading">
+      {eyebrow && <p className="label text-smoke-gray">{eyebrow}</p>}
+      <h2
+        className={`text-[24px] leading-heading tracking-heading text-ink-black sm:text-heading ${
+          eyebrow ? "mt-24" : ""
+        }`}
+      >
         {title}
       </h2>
       {intro && (
@@ -141,8 +147,10 @@ export function ImpactPill({ children }: { children: string }) {
  * for metadata inside cards and rows. This one sits on the tinted hero,
  * so it carries a translucent white fill to lift off the gradient.
  *
- * `tone="accent"` fills it with the accent and flips the text to white
- * (10.69:1) - ink-black on the accent measures 1.7:1 and fails.
+ * `tone="accent"` fills it with the softer step of the accent and
+ * flips the text to white (6.10:1) - ink-black on it measures well
+ * under 3:1 and fails. The full Klein blue stays on the CONTACT
+ * button, so the only pressable thing keeps the strongest colour.
  */
 export function Pill({
   children,
@@ -161,7 +169,7 @@ export function Pill({
     <span
       className={`label inline-flex items-center gap-8 rounded-full px-16 py-8 ${
         accent
-          ? "bg-klein-blue text-on-accent"
+          ? "bg-klein-blue-soft text-on-accent"
           : "border border-veil-gray bg-paper-white/70 text-ink-black"
       }`}
     >

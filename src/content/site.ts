@@ -22,6 +22,13 @@ export const profile = {
   /* The hero H1. */
   headline: "First principles over precedent. Signal over noise.",
 
+  /* The tail of the headline, set word by word in the industry
+     colours - the same palette the hero's particle clusters resolve
+     into, so the sentence and the thing beside it are making the same
+     point in the same hues. Must appear verbatim in `headline`; if it
+     does not, the headline just renders plain. */
+  headlineAccent: "Signal over noise.",
+
   /* Sits under the headline, doing the job of an About section.
      Rendered at body size, not subheading - at 20px a paragraph this
      long turns into a wall on a half-width column. */
@@ -99,6 +106,20 @@ export const assistant = {
   name: "Arthur",
   role: "Sid's agent",
   avatar: "/arthur.png",
+
+  /* Shown in the context card once the document is loaded. It is doing
+     two jobs: setting the boundary before someone hits it, and telling
+     them the allowance is finite, since a visitor who opens with
+     "hello" has spent a third of it on nothing. */
+  contextNote:
+    "Arthur only knows what is on this site, and your questions are counted. Don't spend one on hello.",
+  loadingNote: "Loading the site into context…",
+} as const;
+
+/* Opens /writing, above the post list. */
+export const writingQuote = {
+  text: "One day I will find the right words, and they will be simple.",
+  author: "Jack Kerouac",
 } as const;
 
 /* Opens /books, above the bucket menu. */
@@ -347,6 +368,44 @@ export type Role = {
   href?: string;
   /** The product this role shipped, linked separately from the company. */
   product?: { name: string; href: string };
+  /** Shipped work, listed inside the role's card on /work. */
+  products?: RoleProduct[];
+};
+
+/**
+ * One shipped product inside a role.
+ *
+ * `icp`, `market` and `highlight` are the three things a visitor
+ * skimming a portfolio actually wants: who it was for, where it
+ * played, and what it moved. Every one of them here is drawn from the
+ * role's own `highlights` rather than added on top, so the card and
+ * the long-form list can never claim different things.
+ */
+export type RoleProduct = {
+  id: string;
+  name: string;
+  /** The live product, if there is one to link to. */
+  href?: string;
+  /** Screenshot in /public/products. Falls back to a drawn tile. */
+  thumbnail?: string;
+  brief: string;
+  icp: string;
+  market: string;
+  highlight: string;
+  /** Long form, shown in the modal. Paragraphs. */
+  detail: string[];
+  /**
+   * What building it actually took, technical and product side by
+   * side. Drawn from the work described in `detail` rather than listed
+   * aspirationally: every one of these should be visible in the story
+   * of the product above it.
+   */
+  skills?: string[];
+  /**
+   * An award or badge earned by the product, shown beside its name.
+   * Drops out silently if the file is missing, like the thumbnails.
+   */
+  badge?: { src: string; alt: string; href?: string };
 };
 
 export const work: Role[] = [
@@ -395,6 +454,124 @@ export const work: Role[] = [
     ],
     href: "https://nodeops.xyz",
     product: { name: "CreateOS", href: "https://createos.sh/" },
+    products: [
+      {
+        id: "createos",
+        name: "CreateOS",
+        href: "https://createos.nodeops.network/",
+        thumbnail: "/products/createos.png",
+        brief:
+          "An AI-native zero-code workspace to build, deploy and scale apps, with no DevOps and no tool sprawl.",
+        icp: "Developers who can build a front-end but stall at deployment",
+        market: "Developer tooling and app deployment",
+        highlight: "10,000+ users in the first quarter, #1 Product of the Day on Product Hunt",
+        badge: {
+          src: "/products/producthunt.png",
+          alt: "CreateOS, #1 Product of the Day on Product Hunt",
+          href: "https://www.producthunt.com/products/createos",
+        },
+        detail: [
+          "CreateOS is a unified workspace to build, deploy, and scale apps: no DevOps, no tool sprawl. Eliminate complexity and ship faster with an all-in-one workflow built for speed, focus, and product momentum.",
+          "It scaled to 10,000+ users in its first quarter through go-to-market across a 70,000+ developer community, built by a five-person engineering team, and ranked #1 Product of the Day on Product Hunt.",
+          "The product exists because of a pivot I proposed: away from Web3-only node deployments and toward a deployments-first strategy. The case was built on subscription data, crypto market cycles and an early node-sale downtrend, then validated with Web3 developer surveys. They could vibe-code a front-end, and then stall at deployment.",
+          "A unified credit system merging deployment and AI-generation billing followed, driving a 120% increase in revenue the month after it shipped.",
+        ],
+        skills: [
+          "0 to 1",
+          "Product strategy",
+          "GTM",
+          "Pricing and billing",
+          "AI tooling",
+          "Developer experience",
+        ],
+      },
+      {
+        id: "ai-cicd",
+        name: "AI-assisted CI/CD",
+        href: "https://createos.nodeops.network/",
+        thumbnail: "/products/ai-cicd.png",
+        brief:
+          "Replaced manual YAML and Docker setup with AI-assisted GitHub CI/CD, closing the gap between building an app and getting it live.",
+        icp: "Developers hand-writing pipeline config to ship",
+        market: "Developer tooling and CI/CD",
+        highlight: "4.9M+ build hours, 20K+ deployments, 12K+ vibe-coding sessions",
+        detail: [
+          "The build-to-deploy gap was where CreateOS users were losing time: they could get an application working locally and then spend the rest of the day hand-writing YAML and Docker configuration to get it running anywhere else.",
+          "Replacing that with AI-assisted GitHub CI/CD closed the gap. It has since driven 4.9M+ build hours, 20K+ deployments and 12K+ vibe-coding sessions.",
+        ],
+        skills: [
+          "CI/CD",
+          "Docker",
+          "GitHub Actions",
+          "Developer experience",
+          "AI tooling",
+        ],
+      },
+      {
+        id: "naas-launchpad",
+        name: "Node-as-a-Service launchpad",
+        href: "https://console.nodeops.network/",
+        thumbnail: "/products/naas.png",
+        brief:
+          "Let retail users run nodes across 65+ protocols with zero configuration.",
+        icp: "Retail users who want to run a node without operating infrastructure",
+        market: "Web3 infrastructure",
+        highlight: "$160M+ AUM, 300K+ wallets and $4.3M+ revenue across 65+ protocols",
+        detail: [
+          "Running a node has historically meant operating infrastructure: provisioning, monitoring and keeping it alive. The launchpad removed that entirely, letting retail users run nodes with zero configuration.",
+          "Scaled to 65+ protocols, reaching $160M+ AUM, 300K+ wallets and $4.3M+ in revenue.",
+        ],
+        skills: [
+          "Web3 infrastructure",
+          "Node operations",
+          "Protocol integrations",
+          "Scaling",
+        ],
+      },
+      {
+        id: "portal",
+        name: "Portal",
+        href: "https://portal.nodeops.network/",
+        thumbnail: "/products/portal.png",
+        brief:
+          "The platform for token activity: staking, transfers, bridging, reward claims and governance, in one place.",
+        icp: "Crypto degens and $NODE holders",
+        market: "Crypto",
+        highlight: "Over $50M staked, and $300K+ revenue from the UNO NFT sale",
+        detail: [
+          "Token holders were doing each of these somewhere different: staking in one interface, bridging in another, claiming rewards in a third, and voting somewhere else again. Portal puts staking, token transfers, bridging, reward claims and governance behind one front door.",
+          "More than $50M has been staked through it, and the UNO NFT sale run on it generated over $300K in revenue.",
+        ],
+        skills: [
+          "Tokenomics",
+          "Staking",
+          "Bridging",
+          "Governance",
+          "NFT launch",
+        ],
+      },
+      {
+        id: "sybil-pipeline",
+        name: "Sybil-detection pipeline",
+        href: "https://dune.com/nodeops/stats",
+        thumbnail: "/products/sybil.png",
+        brief:
+          "Analytics, tracking and Sybil detection, built from scratch, to tell real users apart from farmed ones.",
+        icp: "Internal growth and rewards teams distributing to real users",
+        market: "Web3 data and analytics",
+        highlight: "95%+ of Sybil wallets flagged across 10M+ wallets, replacing $15K of tooling",
+        detail: [
+          "Rewards programmes are only as good as their ability to tell a real user from a farmed one. This was a data analytics, tracking and Sybil-detection pipeline built from scratch to do that.",
+          "It flags 95%+ of Sybil wallets across 10M+ wallets, and replaced $15K of third-party tooling.",
+        ],
+        skills: [
+          "Data pipelines",
+          "SQL",
+          "Analytics",
+          "Fraud detection",
+        ],
+      },
+    ],
   },
   {
     slug: "blueurbn",
@@ -430,6 +607,32 @@ export const work: Role[] = [
       },
     ],
     href: "https://www.linkedin.com/company/blueurbn/about/",
+    products: [
+      {
+        id: "nexus",
+        name: "Nexus",
+        href: "https://bu-nexus.vercel.app/",
+        thumbnail: "/products/nexus.png",
+        brief:
+          "A rebates engine helping commercial buildings adopt energy-efficient systems, by surfacing every incentive they qualify for.",
+        icp: "Commercial building owners, MEP firms and engineering partners",
+        market: "Building energy efficiency, New York and California",
+        highlight: "30% shorter payback periods, incentive research cut from 8 to 9 hours down to under one",
+        detail: [
+          "Adopting an energy-efficient system is a financial decision before it is an engineering one, and the incentives that make it viable are scattered across federal, state and utility programmes. Finding them was taking 8 to 9 hours per project.",
+          "Nexus aggregates 380+ rebate programmes across 30+ products into one searchable engine, cutting that research to 30 to 60 minutes and payback periods by 30% on average. The workflow was validated by the Director of Buro Happold.",
+          "Discovery ran with building-energy scientists, MEP firms and engineering partners, securing 5+ enterprise MoUs and shipping 15+ features across the Nexus calculator and the Retro energy-model MVP.",
+          "I owned the incentive logic and compliance research across IRA, ITC, PTC and utility programmes including PG&E and NYSERDA, aligning the product to ASHRAE, Title 24 (CCR) and DOE standards.",
+        ],
+        skills: [
+          "Product discovery",
+          "Regulatory research",
+          "Energy modelling",
+          "Enterprise sales",
+          "Compliance",
+        ],
+      },
+    ],
   },
   {
     slug: "deloitte-usi",
@@ -465,6 +668,30 @@ export const work: Role[] = [
       },
     ],
     href: "https://www.deloitte.com/",
+    products: [
+      {
+        id: "sales-optimisation",
+        name: "Deep-learning sales optimisation",
+        thumbnail: "/products/sales-model.png",
+        brief:
+          "The data foundation behind a model that optimised per-rep channel mix, frequency and spend across a field force.",
+        icp: "Pharmaceutical commercial teams targeting healthcare professionals",
+        market: "Pharma commercial operations across APAC and EU",
+        highlight: "22%+ sales lift the following cycle across a 350+ rep field force",
+        detail: [
+          "A field force of 350+ representatives was deciding channel mix, contact frequency and spend per healthcare professional largely by convention. A deep-learning model could do it better, but only with data clean enough to train on.",
+          "I engineered the model-ready dataset and pre-processing pipeline behind it, consolidating fragmented sources across SQL, text and Excel into feature-rich training data for omnichannel targeting spanning in-person, events, calls, email and WhatsApp.",
+          "I owned the data foundation for 8+ markets, with the model deployed across 20+ markets and 10+ countries spanning APAC and EU. Sales rose 22%+ the following cycle.",
+        ],
+        skills: [
+          "Data engineering",
+          "Feature engineering",
+          "Deep learning",
+          "SQL",
+          "Omnichannel analytics",
+        ],
+      },
+    ],
   },
 ];
 
@@ -531,12 +758,12 @@ export type Post = {
   /** Where it was published, shown as a tag. */
   source?: string;
   /**
-   * Path to an image in /public, e.g. "/writing/memory.jpg".
+   * Path to an image in /public/writing.
    *
    * Left unset the row falls back to the brand sphere, the same
-   * treatment the project cards use. Medium blocks automated requests
-   * (403) so the real cover images could not be pulled down - save them
-   * into /public and set this to use them.
+   * treatment the project cards use. These render into a 3:2 box at
+   * 180px wide with object-cover, so anything wider than 3:2 loses its
+   * left and right edges - check the crop before swapping one out.
    */
   thumbnail?: string;
 };
@@ -550,6 +777,21 @@ export const posts: Post[] = [
     href: "https://medium.com/@siddharth.chadha7/what-does-your-ai-actually-remember-about-you-abdff40ca333",
     readingTime: "6 MIN",
     source: "MEDIUM",
+    thumbnail: "/writing/ai-memory.png",
+  },
+  {
+    title: "What happens when you press Enter on your prompt on Claude/GPT?",
+    /* X returns 402 to automated requests, so the post itself could not
+       be read. The date is decoded from the status ID rather than
+       guessed - X snowflake IDs carry a millisecond timestamp in their
+       upper bits: (id >> 22) + 1288834974657 gives Unix ms, which puts
+       this at 2026-05-13 12:40 UTC. */
+    date: "2026-05-13",
+    blurb:
+      "A walkthrough of the journey a prompt takes between hitting Enter and the first token arriving back on screen.",
+    href: "https://x.com/Sid_625/status/2054542233018507745",
+    source: "X",
+    thumbnail: "/writing/press-enter.jpg",
   },
   {
     title: "The AI Restaurant That Lives Inside Your Computer",
@@ -559,15 +801,7 @@ export const posts: Post[] = [
     href: "https://medium.com/@sid_24024/the-ai-restaurant-that-lives-inside-your-computer-32f67a51b206",
     readingTime: "10 MIN",
     source: "MEDIUM",
-  },
-  {
-    /* X returns 402 to automated requests, so none of this could be
-       read from the post itself - fill in the title and summary. */
-    title: "POST TITLE (ADD)",
-    date: "2026-01-01", // TODO: real date
-    blurb: "ONE-LINE SUMMARY (ADD)",
-    href: "https://x.com/Sid_625/status/2054542233018507745",
-    source: "X",
+    thumbnail: "/writing/ai-kitchen.png",
   },
 ];
 
@@ -579,11 +813,7 @@ export const posts: Post[] = [
    tells them a lot.
 
    Order here is the order of the menu on /books. */
-export const bookBuckets = [
-  "Books",
-  "AI & Tech",
-  "Science & Spirituality",
-] as const;
+export const bookBuckets = ["Books", "AI & Tech", "Product"] as const;
 
 export type BookBucket = (typeof bookBuckets)[number];
 
@@ -692,7 +922,8 @@ export const sections = {
       "Consulting, then strategy, then product: pharma analytics, building energy, and now AI and deployment infrastructure.",
   },
   timeline: {
-    eyebrow: "TIMELINE",
+    /* No eyebrow: "TIMELINE" above "Sid's timeline" was the same word
+       twice. */
     title: "Sid's timeline",
     intro: "Where the work and the years line up, most recent first.",
   },
@@ -715,8 +946,7 @@ export const sections = {
   ask: {
     eyebrow: "ASSISTANT",
     title: "Ask about me",
-    intro:
-      "A chat box wired to everything on this site. Ask it what I've worked on, what I've shipped, or whether I'm a fit for something you're hiring for.",
+    intro: "Let's go, ask me about me :)",
   },
   contact: {
     eyebrow: "CONTACT",

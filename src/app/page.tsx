@@ -11,6 +11,42 @@ import {
   sections,
 } from "@/content/site";
 
+/* The cluster palette, in the order the particle field resolves into
+   it. Taken from `industries` rather than restated, so the headline
+   and the field can never drift onto different colours.
+   
+   Filtered, though. Those hues were chosen as 8px dots on a pill,
+   where contrast barely matters; as 44px words on the near-white hero
+   several of them are unreadable. Measured on the rendered pixels,
+   Cloud Infrastructure's sky blue came out at 2.02:1 against the hero
+   - under the 3:1 that large text needs, let alone the 4.5:1 kept
+   everywhere else on this site. The survivors clear 4.5:1, so the
+   headline stays legible if the hero gradient is ever lightened. */
+const HEADLINE_COLORS = industries.items
+  .map((item) => item.color)
+  .filter((color) => contrastOnWhite(color) >= 4.5);
+
+/** WCAG relative luminance contrast against the paper-white canvas. */
+function contrastOnWhite(hex: string) {
+  const channel = (value: number) =>
+    value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  const [r, g, b] = [1, 3, 5].map((i) =>
+    channel(parseInt(hex.slice(i, i + 2), 16) / 255),
+  );
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return 1.05 / (luminance + 0.05);
+}
+
+/* The headline's tail, split into words so each can take its own
+   colour. Falls back to rendering the whole headline plain if the
+   accent phrase is not actually in it, so editing one without the
+   other degrades rather than throwing. */
+const accentAt = profile.headline.lastIndexOf(profile.headlineAccent);
+const lead =
+  accentAt === -1 ? profile.headline : profile.headline.slice(0, accentAt);
+const accentWords =
+  accentAt === -1 ? [] : profile.headlineAccent.split(" ").filter(Boolean);
+
 export default function Home() {
   return (
     <div>
@@ -38,7 +74,16 @@ export default function Home() {
             </Pill>
 
             <h1 className="mt-32 text-[30px] leading-display tracking-display text-ink-black sm:text-[38px] lg:text-[44px]">
-              {profile.headline}
+              {lead}
+              {accentWords.map((word, index) => (
+                <span
+                  key={`${word}-${index}`}
+                  style={{ color: HEADLINE_COLORS[index % HEADLINE_COLORS.length] }}
+                >
+                  {word}
+                  {index < accentWords.length - 1 ? " " : ""}
+                </span>
+              ))}
             </h1>
 
             {/* Body size, not subheading - see the note in site.ts.

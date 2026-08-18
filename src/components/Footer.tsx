@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import SocialIcon from "@/components/SocialIcon";
 import { profile, sections, socials } from "@/content/site";
+import { capture, EVENTS } from "@/lib/analytics";
 
 export default function Footer() {
   return (
@@ -27,6 +30,7 @@ export default function Footer() {
             plenty of people want to copy it rather than launch one. */}
         <a
           href={`mailto:${profile.email}`}
+          onClick={() => capture(EVENTS.socialClicked, { network: "EMAIL ADDRESS" })}
           className="link-underline inline-block text-subheading leading-subheading tracking-subheading text-ink-black"
         >
           {profile.email}
@@ -45,6 +49,7 @@ export default function Footer() {
                    would otherwise leave a link whose only accessible
                    name is an icon. */
                 aria-label={s.label}
+                onClick={() => capture(EVENTS.socialClicked, { network: s.label })}
                 /* size-[48px], not size-48: 48 is not one of the declared
                    spacing steps, so `size-48` falls through to
                    Tailwind's own scale and renders at 192px. */

@@ -5,13 +5,10 @@ import Link from "next/link";
 import Markdown from "@/components/Markdown";
 import { useEffect, useRef, useState } from "react";
 import MeshGradient from "@/components/MeshGradient";
-import { assistant, profile, sections } from "@/content/site";
-import {
-  type AskEvent,
-  CONTEXT_BUDGET,
-  ctasFor,
-  FREE_QUESTIONS,
-} from "@/lib/ask";
+import { assistant, industries, profile, sections } from "@/content/site";
+import { capture, EVENTS } from "@/lib/analytics";
+import { type AskEvent, ctasFor, FREE_QUESTIONS } from "@/lib/ask";
+import { CONTEXT_SECTIONS, DOC_TOKENS, MODEL_CONTEXT } from "@/lib/context";
 
 /**
  * The chat itself, grounded in the same profile
@@ -163,18 +160,30 @@ export default function AskChat({
     return () => clearTimeout(id);
   }, [spent, busy]);
 
-  /* Tokens in play. The last exchange's prompt count already includes
-     the profile document and the history the route kept, so it is the
-     conversation's real footprint rather than a running sum. */
+  /* Tokens in play, split into the two things actually occupying the
+     window. The last exchange's prompt count already includes the
+     document and whatever history the route kept, so subtracting the
+     document leaves the conversation - a real measurement rather than
+     a running sum, and it shrinks again when old turns are trimmed. */
   const lastStats = [...turns].reverse().find((t) => t.stats)?.stats;
-  const contextUsed = lastStats
-    ? lastStats.inTokens + lastStats.outTokens
+  const chatTokens = lastStats
+    ? Math.max(0, lastStats.inTokens - DOC_TOKENS) + lastStats.outTokens
     : 0;
-  const contextPct = Math.min(100, (contextUsed / CONTEXT_BUDGET) * 100);
+  const contextUsed = DOC_TOKENS + chatTokens;
 
   async function ask(question: string) {
     const text = question.trim();
     if (!text || busy || spent) return;
+
+    /* Fired on send rather than on answer: a question that failed
+       upstream still tells us someone wanted to ask it. `index` is
+       what shows how far into the three-question allowance visitors
+       usually get. */
+    capture(EVENTS.agentQuestion, {
+      index: asked + 1,
+      length: text.length,
+      from_opener: OPENERS.includes(question),
+    });
 
     const next: Turn[] = [...turns, { role: "user", content: text }];
     setTurns([...next, { role: "assistant", content: "" }]);
@@ -279,6 +288,14 @@ export default function AskChat({
         return;
       }
       setLeadSent(true);
+      /* No name, email or phone in the payload - the lead itself
+         arrives by email, and PostHog only needs to know it happened
+         and what came with it. */
+      capture(EVENTS.contactSubmitted, {
+        has_phone: Boolean(lead.phone.trim()),
+        has_reason: Boolean(lead.reason.trim()),
+        questions_asked: asked,
+      });
     } catch {
       setLeadError("Couldn't send that. Try again in a moment.");
     } finally {
@@ -365,13 +382,29 @@ export default function AskChat({
                 />
               ) : empty ? (
                 <div>
-                  <p className="text-body leading-body tracking-body text-ink-black">
-                    {sections.ask.intro}
-                  </p>
-                  <p className="label mt-24 text-smoke-gray">
+                  {/* Arthur introduces himself in the same shape a reply
+                      arrives in - face on the left, words on the right -
+                      so it is obvious before the first question who is
+                      doing the answering. */}
+                  <div className="flex gap-16">
+                    <Image
+                      src={assistant.avatar}
+                      alt={assistant.name}
+                      width={296}
+                      height={296}
+                      className="mt-4 size-32 shrink-0 rounded-full border border-veil-gray bg-paper-white object-cover"
+                    />
+                    <p className="min-w-0 flex-1 text-body leading-body tracking-body text-ink-black">
+                      {sections.ask.intro}
+                    </p>
+                  </div>
+                  {/* Indented to the width of the avatar plus its gap,
+                      so the openers hang under Arthur's words rather
+                      than under his face. */}
+                  <p className="label ml-[48px] mt-24 text-smoke-gray">
                     ASK {assistant.name.toUpperCase()}
                   </p>
-                  <ul className="mt-16 flex flex-col items-start gap-8">
+                  <ul className="ml-[48px] mt-16 flex flex-col items-start gap-8">
                     {OPENERS.map((opener) => (
                       <li key={opener}>
                         <button
@@ -478,7 +511,7 @@ export default function AskChat({
       <ContextCard
         ready={contextReady}
         used={contextUsed}
-        pct={contextPct}
+        chatTokens={chatTokens}
         stats={lastStats}
         asked={asked}
         onReset={isDev ? resetSession : undefined}
@@ -562,26 +595,23 @@ function Answer({ turn, pending }: { turn: Turn; pending: boolean }) {
 function ContextCard({
   ready,
   used,
-  pct,
+  chatTokens,
   stats,
   asked,
   onReset,
 }: {
   ready: boolean;
   used: number;
-  pct: number;
+  chatTokens: number;
   stats?: Turn["stats"];
   asked: number;
   /** Only passed in development - see the note at the call site. */
   onReset?: () => void;
 }) {
-  const sources = [
-    "Profile and bio",
-    "Work history",
-    "Projects",
-    "Writing",
-    "Reading",
-  ];
+  /* The second colour is the palette's violet, the same one the hero
+     headline uses - so "conversation" reads as a sibling of the site's
+     own colours rather than a new one introduced for a chart. */
+  const chatColor = industries.items[1].color;
 
   return (
     <aside className="flex flex-col gap-24 rounded-3xl border border-veil-gray bg-paper-white/70 p-24 backdrop-blur-sm max-lg:hidden">
@@ -604,16 +634,14 @@ function ContextCard({
       <div>
         <p className="label text-smoke-gray">CONTEXT</p>
         <p className="mt-12 text-body leading-body tracking-body text-ink-black">
-          {ready
-            ? "This whole site is loaded. The assistant answers from it and nothing else."
-            : "Loading the site into context…"}
+          {ready ? assistant.contextNote : assistant.loadingNote}
         </p>
       </div>
 
       <ul className="flex flex-col gap-8">
-        {sources.map((source, index) => (
+        {CONTEXT_SECTIONS.map((section, index) => (
           <li
-            key={source}
+            key={section.label}
             className="flex items-center gap-12 text-caption leading-caption tracking-caption text-mist-gray"
           >
             {/* Ticks arrive in sequence rather than at once, so the
@@ -625,7 +653,10 @@ function ContextCard({
               }`}
               style={{ transitionDelay: `${index * 90}ms` }}
             />
-            {source}
+            <span className="flex-1">{section.label}</span>
+            <span className="tabular-nums text-smoke-gray">
+              {section.tokens.toLocaleString()}
+            </span>
           </li>
         ))}
       </ul>
@@ -634,22 +665,76 @@ function ContextCard({
         <div className="flex items-baseline justify-between gap-8">
           <p className="label text-smoke-gray">CONTEXT USED</p>
           <p className="label text-ink-black">
-            {used.toLocaleString()}/{CONTEXT_BUDGET.toLocaleString()}
+            {used.toLocaleString()}/1M
           </p>
         </div>
+
+        {/* Drawn against the model's real window rather than an
+            invented budget. At this scale the truth is that the whole
+            site is a rounding error - about a third of one percent -
+            so each segment gets a minimum width to stay visible. The
+            exact figures sit directly beneath, which is where the
+            precision belongs; the bar is here to show the proportion
+            between the two things in the window, not to be measured
+            with a ruler. */}
         <div
-          className="mt-12 h-4 w-full overflow-hidden rounded-full bg-veil-gray"
+          className="mt-12 flex h-4 w-full gap-[2px] overflow-hidden rounded-full bg-veil-gray"
           role="progressbar"
           aria-valuemin={0}
-          aria-valuemax={CONTEXT_BUDGET}
+          aria-valuemax={MODEL_CONTEXT}
           aria-valuenow={used}
-          aria-label="Context used"
+          aria-label={`Context used: ${used.toLocaleString()} of ${MODEL_CONTEXT.toLocaleString()} tokens`}
         >
           <div
             className="h-full rounded-full bg-klein-blue transition-[width] duration-500"
-            style={{ width: `${Math.max(pct, used > 0 ? 2 : 0)}%` }}
+            style={{
+              width: `${Math.max((DOC_TOKENS / MODEL_CONTEXT) * 100, 3)}%`,
+            }}
           />
+          {chatTokens > 0 && (
+            <div
+              className="h-full rounded-full transition-[width] duration-500"
+              style={{
+                width: `${Math.max((chatTokens / MODEL_CONTEXT) * 100, 1.5)}%`,
+                backgroundColor: chatColor,
+              }}
+            />
+          )}
         </div>
+
+        <ul className="mt-12 flex flex-col gap-4">
+          <li className="flex items-center gap-8 text-caption leading-caption tracking-caption text-mist-gray">
+            <span
+              aria-hidden="true"
+              className="block size-8 shrink-0 rounded-full bg-klein-blue"
+            />
+            <span className="flex-1">This site</span>
+            <span className="tabular-nums text-smoke-gray">
+              {DOC_TOKENS.toLocaleString()}
+            </span>
+          </li>
+          <li className="flex items-center gap-8 text-caption leading-caption tracking-caption text-mist-gray">
+            <span
+              aria-hidden="true"
+              className="block size-8 shrink-0 rounded-full"
+              style={{ backgroundColor: chatColor }}
+            />
+            <span className="flex-1">This conversation</span>
+            <span className="tabular-nums text-smoke-gray">
+              {chatTokens.toLocaleString()}
+            </span>
+          </li>
+          <li className="flex items-center gap-8 text-caption leading-caption tracking-caption text-mist-gray">
+            <span
+              aria-hidden="true"
+              className="block size-8 shrink-0 rounded-full bg-veil-gray"
+            />
+            <span className="flex-1">Free</span>
+            <span className="tabular-nums text-smoke-gray">
+              {(MODEL_CONTEXT - used).toLocaleString()}
+            </span>
+          </li>
+        </ul>
       </div>
 
       <div className="border-t border-veil-gray pt-16">

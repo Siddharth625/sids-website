@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google";
 import AskLauncher from "@/components/AskLauncher";
+import PageViewEvents from "@/components/PageViewEvents";
+import PostHogScript from "@/components/PostHogScript";
 import Nav from "@/components/Nav";
 import { profile } from "@/content/site";
 import "./globals.css";
 
 /**
  * Inter Tight is the spec's named substitute for the custom geometric
- * sans. Only weight 400 is loaded - the design has no bold, and not
- * shipping the other weights makes that impossible to violate by
- * accident.
+ * sans. The design has no bold: weight 400 carries the whole site, and
+ * hierarchy comes from size and letter-spacing. Weight 600 is loaded
+ * as a deliberate, single exception for the figures in the assistant's
+ * answers.
  */
 const interTight = Inter_Tight({
   subsets: ["latin"],
-  weight: ["400"],
+  /* 400 is the design system's only weight and stays that way
+     everywhere on the page. 600 is loaded for exactly one thing: the
+     figures in Arthur's answers, where a colour step alone was not
+     enough to make a number jump out of a paragraph. Nothing else may
+     use it - see the `strong`/`b` reset in globals.css, which still
+     holds those elements at 400 by default. */
+  weight: ["400", "600"],
   variable: "--font-inter-tight",
   display: "swap",
 });
@@ -40,6 +49,9 @@ export default function RootLayout({
           the sanctioned escape hatch: it ignores attribute differences
           on this element only, not on its children. */}
       <body suppressHydrationWarning>
+        <PostHogScript />
+        <PageViewEvents />
+
         {/* Anchor targets sit behind a fixed nav; give keyboard users
             a way past it. */}
         <a

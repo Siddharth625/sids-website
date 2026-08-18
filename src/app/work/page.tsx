@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Footer from "@/components/Footer";
+import RoleShowcase from "@/components/RoleShowcase";
 import { PageShell, Quote, Section } from "@/components/Section";
-import WorkCarousel from "@/components/WorkCarousel";
-import { sections, workQuote } from "@/content/site";
+import { sections, work, workQuote } from "@/content/site";
 
 export const metadata: Metadata = {
   title: "Work",
@@ -19,8 +19,17 @@ export default function Work() {
           <h1 className="sr-only">{sections.work.title}</h1>
           <Quote {...workQuote} />
 
-          <div className="mt-56">
-            <WorkCarousel />
+          {/* One card per role, most recent first, so NodeOps fills
+              the first fold. Each carries its own shipped work rather
+              than hiding it behind a horizontal scroll. */}
+          <div className="mt-56 flex flex-col gap-40">
+            {work.map((role, index) => (
+              <RoleShowcase
+                key={role.slug}
+                role={role}
+                defaultOpen={index === 0}
+              />
+            ))}
           </div>
         </Section>
       </PageShell>

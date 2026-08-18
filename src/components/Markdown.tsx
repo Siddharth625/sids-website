@@ -9,13 +9,12 @@ import { Fragment, type ReactNode } from "react";
  * elements. Nothing is ever passed to `dangerouslySetInnerHTML`, so
  * model output cannot inject markup no matter what it writes.
  *
- * **Strong is not bold**, because this design system has no bold: only
- * weight 400 of Inter Tight is loaded, so `font-bold` has nothing to
- * resolve to and the browser would synthesise a smeared fake. The
- * site's own idiom for emphasis is a colour step - the timeline does
- * exactly this, setting the metric in one grey and its explanation in
- * another - so strong text takes ink-black against a mist-gray
- * paragraph.
+ * **Strong is bold here, and only here.** The design system has no
+ * bold anywhere else, so the layout loads weight 600 solely for this
+ * and `globals.css` still pins `strong`/`b` to 400 by default. A
+ * colour step alone (ink-black against the mist-gray paragraph) was
+ * not enough to make a figure jump out of a sentence, so emphasis
+ * gets both: the darker ink and the heavier weight.
  *
  * **Links are rendered as their label, not as anchors.** The model is
  * told to answer only from the profile document, but a URL it invents
@@ -39,9 +38,13 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
 
     if (match[1] !== undefined) {
       out.push(
-        <span key={key} className="text-ink-black">
+        /* `font-semibold` as a class, not a bare <strong>: globals.css
+           resets `strong` and `b` to weight 400 to keep bold out of
+           the design system, and a class beats an element selector. So
+           this is the one place bold appears, and it cannot leak. */
+        <strong key={key} className="font-semibold text-ink-black">
           {match[1]}
-        </span>,
+        </strong>,
       );
     } else if (match[2] !== undefined) {
       out.push(

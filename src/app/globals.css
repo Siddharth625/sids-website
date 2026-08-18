@@ -25,6 +25,13 @@
      1.7:1 - well under the 4.5:1 minimum. Its foreground is white
      (10.7:1), hence the paired token below. */
   --color-klein-blue: #002fa7;
+  /* A lighter step of the accent, for the hero's role pill. The pill
+     is a label, not an action - the CONTACT button keeps the full
+     Klein blue so the one thing on the page you can press stays the
+     strongest colour on it. Measured 6.10:1 against its white text,
+     so it clears 4.5:1 with room to spare; the family bottoms out
+     around #3b6ef0, which fails. */
+  --color-klein-blue-soft: #2255e0;
   --color-on-accent: #ffffff;
 
   /* Used only to pick the numbers out of the impact chips. */
@@ -134,7 +141,13 @@ h3,
 h4,
 h5,
 h6,
-strong,
+/* `:not(.font-semibold)` is the single carve-out: the assistant's
+   answers set figures in weight 600, and this reset is unlayered CSS,
+   which beats Tailwind's layered utilities no matter their
+   specificity. Excluding the class is the only way a utility can win
+   here - and it keeps bold impossible everywhere it is not asked for
+   by name. */
+strong:not(.font-semibold),
 b,
 th {
   font-weight: 400;
