@@ -128,7 +128,7 @@ export default function ProjectFilters({
 
   return (
     <>
-      <div className="mt-40 flex flex-col gap-24 border-y border-veil-gray py-32">
+      <div className="mt-40 flex flex-col gap-24">
         <FilterGroup
           label="ICP TYPE"
           values={facets.icp}
