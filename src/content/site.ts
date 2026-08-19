@@ -116,6 +116,12 @@ export const assistant = {
   loadingNote: "Loading the site into context…",
 } as const;
 
+/* Opens /projects, above the project list. */
+export const projectsQuote = {
+  text: "The only source of knowledge is experience.",
+  author: "Albert Einstein",
+} as const;
+
 /* Opens /writing, above the post list. */
 export const writingQuote = {
   text: "One day I will find the right words, and they will be simple.",
@@ -697,52 +703,130 @@ export const work: Role[] = [
 
 /* ── PROJECTS ─────────────────────────────────────────────── */
 
+/** Who the thing is for. Drives the ICP filter on /projects. */
+export type IcpType = "B2B" | "B2C";
+
+/**
+ * Every industry a project can carry, taken from the hero's list so
+ * the two can't drift - a project cannot claim an industry the hero
+ * doesn't already say he has experience in.
+ */
+export type IndustryName = (typeof industries.items)[number]["name"];
+
 export type Project = {
   title: string;
   blurb: string;
-  tags: readonly string[];
+  /**
+   * Rendered as pills on the card and used by the filters. Skills come
+   * from the CV's skills section verbatim, so the vocabulary stays one
+   * list rather than two that drift.
+   */
+  skills: readonly string[];
+  icp: IcpType;
+  /** Empty where none of the hero's industries genuinely apply. */
+  industries: readonly IndustryName[];
   href?: string;
-  year: string;
+  /**
+   * Omitted where the year genuinely is not known, rather than
+   * guessed - the card simply drops the line. Same rule the timeline
+   * follows for undated study.
+   */
+  year?: string;
+  /** Screenshot in /public. Falls back to the brand sphere when unset. */
+  thumbnail?: string;
+  /**
+   * Portrait shots (a phone mockup) get "contain" so the whole device
+   * stays visible on the card's ink ground; wide screenshots get the
+   * default "cover" and fill the frame.
+   */
+  thumbnailFit?: "cover" | "contain";
+  /** Body of the Read More overlay. No detail, no button. */
+  detail?: readonly string[];
 };
+
 
 /* Drawn from the products shipped inside the roles above. Years are
    inferred from each role's period - the CV dates the roles, not the
    individual products, so correct any that are off. */
 export const projects: Project[] = [
   {
-    title: "CreateOS",
+    title: "Prysmo",
     blurb:
-      "An AI-native zero-code platform for building and deploying applications. Scaled to 10,000+ users in its first quarter with a 5-person engineering team, and ranked #1 Product of the Day on Product Hunt.",
-    tags: ["AI", "ZERO-CODE", "GTM"],
-    year: "2025",
+      "An X audience intelligence tool. It identifies which of your engagers are actually your ICP, recommends people to reach based on your intent, shows analytically what is and isn't working, and drafts in a voice adapted to your own writing style.",
+    icp: "B2B",
+    industries: ["Artificial Intelligence"],
+    skills: [
+      "LLM product design",
+      "Agentic workflows",
+      "Prompt engineering",
+      "User research",
+      "0→1 launches",
+    ],
+    href: "https://production-frontend-prysmo.tyzo.nodeops.app/",
+    thumbnail: "/projects/prysmo.png",
+    detail: [
+      "Prysmo starts from a blunt question: are the people engaging with an account the people it meant to reach? It scores every engager against a defined ICP and reports the gap - a drift score alongside the share of engagers who actually fit - so audience quality becomes a number rather than a feeling.",
+      "The engager table is the working surface. Each person carries a fit rating, a segment, a role, a follower band and a mention count, so an account can be worked down by priority instead of scrolled. Recommendations follow from stated intent rather than raw reach.",
+      "Analysis and action sit in one tool. Insights show what is and isn't landing across posts; compose drafts new ones in a voice adapted to the account's own writing style; the scheduler plans and publishes them. The read on the audience and the next post are not in separate places.",
+    ],
   },
   {
-    title: "AI-assisted CI/CD",
+    title: "CompeteIQ",
     blurb:
-      "Replaced manual YAML and Docker setup with AI-assisted GitHub CI/CD, closing the gap between building an app and getting it deployed. Drove 4.9M+ build hours and 20K+ deployments.",
-    tags: ["CI/CD", "DEVELOPER TOOLS"],
-    year: "2025",
+      "Ingests competitors' links, screenshots, docs, and pricing; auto-generates comparative analysis. Adopted team-wide; informed cutting or pausing 3 pipeline products.",
+    icp: "B2B",
+    industries: ["Artificial Intelligence", "Cloud Infrastructure"],
+    skills: [
+      "LLM product design",
+      "Agentic workflows",
+      "Product strategy & roadmap",
+      "GTM strategy",
+    ],
+    href: "https://dep-503b87b6-71b6-4ef1-9c27-01b7f97a825c.tyzo.nodeops.app/dashboard.html",
+    thumbnail: "/projects/competeiq.png",
+    detail: [
+      "Competitive research is usually a folder of screenshots nobody re-opens. CompeteIQ takes the raw material - competitors' links, screenshots, docs and pricing - and generates the comparative analysis from it, so the work survives past the week it was done.",
+      "Output is organised the way the questions actually get asked: strategy, product, marketing and business development each get their own brief, from positioning theses and feature matrices down to named targets and partnership maps.",
+      "It was adopted team-wide, and the analysis directly informed cutting or pausing three products in the pipeline - the rarer outcome for competitive research, which more often justifies work already underway.",
+    ],
   },
   {
-    title: "Node-as-a-Service launchpad",
+    title: "Scope 3 LCA",
     blurb:
-      "Scaled to 65+ protocols, letting retail users run nodes with zero configuration. Reached $160M+ AUM, 300K+ wallets and $4.3M+ in revenue.",
-    tags: ["WEB3", "INFRASTRUCTURE"],
-    year: "2024",
+      "Maps and reports the life-cycle assessment of a textile process, stage by stage. The stage model is industry-agnostic - textiles is the worked example, not a limit.",
+    icp: "B2B",
+    industries: ["ESG & Sustainability"],
+    skills: [
+      "Product strategy & roadmap",
+      "User research",
+      "Cross-functional stakeholder management",
+      "0→1 launches",
+    ],
+    thumbnail: "/projects/scope3-lca.png",
+    detail: [
+      "Scope 3 emissions are the ones a company does not directly control, which is exactly why they are the hardest to report. This maps a product's life cycle as a process graph - each stage carrying its resource inputs, its emissions and its waste - so the footprint is assembled from the process rather than estimated on top of it.",
+      "The assessment runs as a guided journey: scope definition, inventory assessment, impact, evaluation, then report. Each stage builds on the last, and the calculation stays visible - primary material flow, recycled content, the impact of primary production against the impact of recycling, resolved through a circular footprint formula.",
+      "It is built around a textile process end to end, from raw material through pre-processing to the finished product. Nothing in the stage model is textile-specific, so the same structure carries to other industries.",
+    ],
   },
   {
-    title: "Sybil-detection pipeline",
+    title: "GoalCast",
     blurb:
-      "Built from scratch: analytics, tracking and Sybil detection flagging 95%+ of Sybil wallets across 10M+ wallets, replacing $15K of tooling.",
-    tags: ["DATA", "ANALYTICS"],
-    year: "2024",
-  },
-  {
-    title: "Nexus",
-    blurb:
-      "A rebates engine helping commercial buildings adopt energy-efficient systems. Aggregating 380+ rebate programs cut incentive research from 8–9 hours to under an hour, and payback periods by 30%.",
-    tags: ["ENERGY", "COMPLIANCE"],
-    year: "2023",
+      "A FIFA 2026 prediction app. Pick every fixture before kickoff, score more for calling the upset, and see how your picks sit against the crowd.",
+    icp: "B2C",
+    /* None of the hero's industries describe a football prediction
+       app, so it carries none rather than a stretched one. */
+    industries: [],
+    skills: ["0→1 launches", "Prompt engineering"],
+    href: "https://goalcast.createos.sh/",
+    thumbnail: "/projects/goalcast.png",
+    thumbnailFit: "contain",
+    year: "2026",
+    detail: [
+      "A prediction game built around the 2026 World Cup fixture list. Each match takes one pick - favourite, draw or underdog - and the points are weighted against the odds, so calling an upset is worth more than backing the obvious result.",
+      "Picks lock at kickoff, which is what keeps it honest. Until then a pick can be changed, and every fixture shows how the community has voted, so a contrarian call is a visible decision rather than a private one.",
+      "It was built and deployed on CreateOS - the platform used as its own proof, a consumer app shipped on the zero-code stack rather than a demo of it.",
+    ],
   },
 ];
 
@@ -931,7 +1015,7 @@ export const sections = {
   projects: {
     eyebrow: "PROJECTS",
     title: "Things I've built",
-    intro: "Products shipped inside those roles, most recent first.",
+    intro: "Products and tools built end to end, most recent first.",
   },
   writing: {
     eyebrow: "WRITING",

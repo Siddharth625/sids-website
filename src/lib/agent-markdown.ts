@@ -94,9 +94,12 @@ export function buildAgentMarkdown(): string {
 
   push("## Projects", "");
   projects.forEach((p) => {
-    push(`### ${p.title} (${p.year})`, "");
+    push(`### ${p.title}${p.year ? ` (${p.year})` : ""}`, "");
     push(p.blurb, "");
-    push(`- **Tags:** ${p.tags.join(", ")}`);
+    push(`- **Built for:** ${p.icp}`);
+    if (p.industries.length)
+      push(`- **Industries:** ${p.industries.join(", ")}`);
+    push(`- **Skills:** ${p.skills.join(", ")}`);
     if (p.href) push(`- **Link:** ${p.href}`);
     push("");
   });

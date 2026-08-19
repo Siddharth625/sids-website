@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import DetailOverlay from "@/components/DetailOverlay";
 import { CasedLabel } from "@/components/Section";
 import type { Role, RoleProduct } from "@/content/site";
 
@@ -17,8 +18,8 @@ import type { Role, RoleProduct } from "@/content/site";
  * metrics. A stacked card costs vertical space and shows everything.
  */
 
-/** Read More and its modal, off for now. One flag, nothing deleted. */
-const READ_MORE_ENABLED = false;
+/** Read More and its overlay. One flag, in case it needs turning off again. */
+const READ_MORE_ENABLED = true;
 
 /* Grounds for the drawn thumbnail, so a product without a screenshot
    still reads as a distinct tile rather than an empty box. Same
@@ -123,7 +124,7 @@ function Facts({ product }: { product: RoleProduct }) {
   );
 }
 
-/** Full-screen detail. Escape closes it and the page behind is held still. */
+/** The role flavour of the shared Read More overlay. */
 function DetailModal({
   product,
   company,
@@ -133,75 +134,20 @@ function DetailModal({
   company: string;
   onClose: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
-    };
-  }, [onClose]);
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${product.name} in detail`}
-      className="fixed inset-0 z-[60] overflow-y-auto bg-paper-white"
-    >
-      <div className="mx-auto w-full max-w-[var(--page-max-width)] px-24 pb-56 pt-24 sm:px-40">
-        <div className="flex items-start justify-between gap-24">
-          <div className="min-w-0">
-            <p className="label text-smoke-gray">
-              <CasedLabel>{company}</CasedLabel>
-            </p>
-            <h2 className="mt-12 text-[24px] leading-heading tracking-heading text-ink-black sm:text-heading">
-              {product.name}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="label link-underline shrink-0 text-ink-black"
-          >
-            CLOSE
-          </button>
-        </div>
-
-        <div className="mt-40 grid gap-40 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex flex-col gap-24">
-            {product.detail.map((paragraph, index) => (
-              <p
-                key={index}
-                className="max-w-[680px] text-body leading-body tracking-body text-ink-black"
-              >
-                {paragraph}
-              </p>
-            ))}
-
-            {product.href && (
-              <Link
-                href={product.href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="label link-underline self-start text-ink-black"
-              >
-                VISIT {product.name.toUpperCase()}
-              </Link>
-            )}
-          </div>
-
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <Thumbnail product={product} />
-            <Facts product={product} />
-          </div>
-        </div>
-      </div>
-    </div>
+    <DetailOverlay
+      eyebrow={<CasedLabel>{company}</CasedLabel>}
+      title={product.name}
+      paragraphs={product.detail}
+      href={product.href}
+      onClose={onClose}
+      aside={
+        <>
+          <Thumbnail product={product} />
+          <Facts product={product} />
+        </>
+      }
+    />
   );
 }
 
@@ -340,32 +286,32 @@ export default function RoleShowcase({
                           screen reader users often pull the links out
                           of a page as a list, where a dozen identical
                           labels are useless. */}
-                      {product.href && (
-                        <p className="mt-24">
-                          <Link
-                            href={product.href}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            aria-label={`Visit ${product.name}`}
-                            className="label link-underline text-ink-black"
-                          >
-                            VISIT
-                          </Link>
-                        </p>
-                      )}
+                      {(product.href ||
+                        (READ_MORE_ENABLED && product.detail.length > 0)) && (
+                        <div className="mt-24 flex flex-wrap items-center gap-x-24 gap-y-12">
+                          {product.href && (
+                            <Link
+                              href={product.href}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              aria-label={`Visit ${product.name}`}
+                              className="label link-underline text-ink-black"
+                            >
+                              VISIT
+                            </Link>
+                          )}
 
-                      {/* Turned off on request. The button, the modal
-                          and every product's `detail` copy are all
-                          still here - flip READ_MORE_ENABLED back to
-                          true and it returns exactly as it was. */}
-                      {READ_MORE_ENABLED && (
-                        <button
-                          type="button"
-                          onClick={() => setOpen(product)}
-                          className="label mt-24 rounded-button border border-veil-gray px-16 py-8 text-ink-black transition-colors hover:border-ink-black"
-                        >
-                          READ MORE
-                        </button>
+                          {READ_MORE_ENABLED && product.detail.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setOpen(product)}
+                              aria-label={`Read more about ${product.name}`}
+                              className="label rounded-button border border-veil-gray px-16 py-8 text-ink-black transition-colors hover:border-ink-black"
+                            >
+                              READ MORE
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
